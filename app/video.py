@@ -31,12 +31,14 @@ def get_render_log_path(output_mp4_path: Path) -> Path:
     return LOGS_DIR / f"{output_mp4_path.stem}.log"
 
 
-def _escape_filter_text(text: str) -> str:
-    """Escapes simple text for an FFmpeg filter: forward slashes, drive colon, quotes."""
-    text = text.replace("\\", "/")
+def escape_filter_path(path: Path) -> str:
+    """
+    Makes a Windows path safe inside an FFmpeg filter, e.g. subtitles='C\\:/x/clip.ass'.
+    Forward slashes, one backslash before the drive colon, quoted so spaces stay together.
+    """
+    text = str(path.resolve()).replace("\\", "/")
     text = text.replace(":", "\\:")   # escape the drive colon (C:)
-    text = text.replace("'", "\\'")   # escape apostrophes (e.g. O'Brien)
-    return f"'{text}'"                # single quotes keep spaces together
+    return f"'{text}'"
 
 
 def _read_log_tail(log_path: Path, max_lines: int = 15) -> str:
@@ -279,14 +281,8 @@ def render_vertical_clip(
 
     sub_arg = ""
     if subtitle_ass_path and subtitle_ass_path.exists():
-        # FFmpeg reads captions from the clip folder (cwd), so it never has to parse
-        # "C:", spaces or apostrophes from the full Windows path.
-        caption_file = subtitle_ass_path
-        if subtitle_ass_path.resolve().parent != work_dir.resolve():
-            # Captions live elsewhere: copy them beside the clip under a plain name.
-            caption_file = work_dir / f"{subtitle_ass_path.stem}.ass"
-            shutil.copyfile(subtitle_ass_path, caption_file)
-        sub_arg = f",subtitles={_escape_filter_text(caption_file.name)}"
+        # Escaped absolute path: drive colon handled, works with spaces in folder names
+        sub_arg = f",subtitles={escape_filter_path(subtitle_ass_path)}"
 
     cmd = [
         ffmpeg_exe,

@@ -270,10 +270,22 @@ def process_single_job(job_id: str) -> None:
 
         t_render_start = time.perf_counter()
         total_cands = len(candidates)
+        failed_count = 0
         for idx, cand in enumerate(candidates, start=1):
             clip_id = f"clip_{idx:02d}"
             cand["id"] = clip_id
             cand["index"] = idx
+
+            # Clamp the clip to the real video length so FFmpeg never runs past the end
+            if cand["end"] > video_duration_sec:
+                cand["end"] = round(video_duration_sec, 2)
+                cand["duration"] = round(cand["end"] - cand["start"], 2)
+            if cand["end"] <= cand["start"]:
+                cand["render_status"] = "failed"
+                cand["render_error"] = "clip starts after the end of the video"
+                failed_count += 1
+                logger.error(f"[{job_id}] Clip {idx}/{total_cands} skipped: {cand['render_error']}")
+                continue
 
             pct = int(80 + (idx / max(1, total_cands)) * 18)
             msg = f"Rendering clip {idx} of {total_cands} ({crop_style})..."
@@ -281,25 +293,36 @@ def process_single_job(job_id: str) -> None:
 
             t_clip_start = time.perf_counter()
 
-            # Subtitles
-            ass_path = job_dir / f"{clip_id}.ass"
-            generate_ass_subtitles_for_clip(
-                transcript_segments=segments,
-                clip_start=cand["start"],
-                clip_end=cand["end"],
-                output_ass_path=ass_path
-            )
+            try:
+                # Subtitles
+                ass_path = job_dir / f"{clip_id}.ass"
+                generate_ass_subtitles_for_clip(
+                    transcript_segments=segments,
+                    clip_start=cand["start"],
+                    clip_end=cand["end"],
+                    output_ass_path=ass_path
+                )
 
-            # MP4 render
-            output_mp4 = job_dir / f"{clip_id}.mp4"
-            render_vertical_clip(
-                input_video_path=input_video,
-                start_time=cand["start"],
-                end_time=cand["end"],
-                output_mp4_path=output_mp4,
-                subtitle_ass_path=ass_path,
-                crop_style=crop_style
-            )
+                # MP4 render
+                output_mp4 = job_dir / f"{clip_id}.mp4"
+                render_vertical_clip(
+                    input_video_path=input_video,
+                    start_time=cand["start"],
+                    end_time=cand["end"],
+                    output_mp4_path=output_mp4,
+                    subtitle_ass_path=ass_path,
+                    crop_style=crop_style
+                )
+            except Exception as e:
+                # Mark just this clip as failed and carry on with the next one.
+                # Full FFmpeg output is in logs/clip_XX.log; the UI gets a short reason.
+                reason = (str(e).strip().splitlines()[0][:200] if str(e).strip() else "render error")
+                cand["render_status"] = "failed"
+                cand["render_error"] = reason
+                failed_count += 1
+                logger.error(f"[{job_id}] Clip {idx}/{total_cands} failed: {reason}")
+                continue
+
             t_clip = time.perf_counter() - t_clip_start
 
             cand["rendered_file"] = f"{clip_id}.mp4"
@@ -307,6 +330,8 @@ def process_single_job(job_id: str) -> None:
             cand["render_status"] = "completed"
             cand["last_render_seconds"] = round(t_clip, 2)
             logger.info(f"[{job_id}] Rendered clip {idx}/{total_cands} ({cand['duration']}s) in {t_clip:.2f}s")
+
+        succeeded_count = total_cands - failed_count
 
         t_render_total = time.perf_counter() - t_render_start
         logger.info(f"[{job_id}] [STAGE 4/4] Video clip rendering finished in {t_render_total:.2f}s")
@@ -352,7 +377,11 @@ Processing Speed Ratio:   {sec_per_min:.1f} seconds of processing per minute of 
         job_data = load_job(job_id)
         if job_data:
             job_data["status"] = "completed"
-            job_data["progress_message"] = f"All {total_cands} clips rendered successfully in {t_total_pipeline:.1f}s! ({sec_per_min:.1f}s/min of video)"
+            job_data["progress_message"] = (
+                f"All {total_cands} clips rendered successfully in {t_total_pipeline:.1f}s! ({sec_per_min:.1f}s/min of video)"
+                if failed_count == 0 else
+                f"{succeeded_count} of {total_cands} clips rendered, {failed_count} failed. See logs/clip_XX.log for details."
+            )
             job_data["progress_percent"] = 100
             job_data["duration_seconds"] = round(video_duration_sec, 2)
             job_data["language"] = transcript_data.get("language", "en")

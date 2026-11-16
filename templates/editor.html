@@ -139,6 +139,15 @@
       border-radius: 6px;
       border-left: 3px solid #6366f1;
     }
+    .failed-note {
+      font-size: 0.82rem;
+      color: #fca5a5;
+      margin-bottom: 10px;
+      background: rgba(239, 68, 68, 0.1);
+      padding: 6px 10px;
+      border-radius: 6px;
+      border-left: 3px solid #ef4444;
+    }
     .clip-quote {
       background: rgba(15, 23, 42, 0.6);
       border-left: 3px solid #475569;
@@ -578,6 +587,20 @@
         const sourceLabel = cand.is_basic ? "Basic Suggestion" : "AI Highlight";
         const typeLabel = (cand.type || "HIGHLIGHT").toUpperCase();
         const completenessNote = cand.completeness_note ? `🎯 <strong>Completeness:</strong> ${cand.completeness_note}` : "";
+        const failedNote = cand.render_status === "failed"
+          ? `<div class="failed-note">❌ Failed: ${cand.render_error || "render error"}</div>`
+          : "";
+        // Only offer Play / Download when there is actually a rendered file
+        const playButton = cand.rendered_file
+          ? `<button class="btn btn-primary btn-sm btn-play" onclick="playRenderedClip('${cand.rendered_url}', '${cand.title.replace(/'/g, "\\'")}', document.getElementById('card_${clipId}'))">
+                ▶ Play Rendered Clip
+              </button>`
+          : "";
+        const downloadLink = cand.rendered_file
+          ? `<a href="/api/jobs/${JOB_ID}/clips/${cand.rendered_file}/download" class="btn btn-download btn-sm" download>
+                📥 Download MP4
+              </a>`
+          : "";
 
         const card = document.createElement("div");
         card.className = "candidate-card";
@@ -598,6 +621,7 @@
           </div>
           <div class="reason-text">💡 ${cand.reason}</div>
           ${completenessNote ? `<div class="completeness-note">${completenessNote}</div>` : ""}
+          ${failedNote}
           <div class="clip-quote">"${cand.text}"</div>
 
           <!-- Trim & Crop Style Controls -->
@@ -628,16 +652,12 @@
           <!-- Card Actions -->
           <div class="card-actions">
             <div class="action-group-left">
-              <button class="btn btn-primary btn-sm btn-play" onclick="playRenderedClip('${cand.rendered_url}', '${cand.title.replace(/'/g, "\\'")}', document.getElementById('card_${clipId}'))">
-                ▶ Play Rendered Clip
-              </button>
+              ${playButton}
               <button class="btn btn-rerender btn-sm" id="btnRender_${clipId}" onclick="triggerReRender('${clipId}')">
                 🔄 Re-render Clip
               </button>
             </div>
-            <a href="/api/jobs/${JOB_ID}/clips/${cand.rendered_file}/download" class="btn btn-download btn-sm" download>
-              📥 Download MP4
-            </a>
+            ${downloadLink}
           </div>
         `;
 
@@ -645,7 +665,7 @@
       });
 
       // Auto-preview first clip if player is idle
-      if (!verticalPlayerSource.src && currentCandidates.length > 0) {
+      if (!verticalPlayerSource.src && currentCandidates.length > 0 && currentCandidates[0].rendered_file) {
         const first = currentCandidates[0];
         playRenderedClip(first.rendered_url, first.title, document.getElementById(`card_${first.id}`));
       }
