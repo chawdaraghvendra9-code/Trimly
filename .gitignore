@@ -9,6 +9,10 @@ venv/
 jobs_data/*
 !jobs_data/.gitkeep
 
+# FFmpeg render logs
+logs/
+
 # OS files
 .DS_Store
 Thumbs.db
+cliptor.log

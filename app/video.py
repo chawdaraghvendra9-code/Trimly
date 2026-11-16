@@ -4,13 +4,80 @@ Safely calls FFmpeg using argument lists (never raw shell strings).
 Handles audio extraction, center cropping, blurred background vertical rendering,
 and burning in ASS subtitles.
 """
+import os
+import shlex
 import shutil
 import subprocess
 import logging
 from pathlib import Path
 from typing import Optional
 
+from app.config import LOGS_DIR, RENDER_TIMEOUT_SECONDS
+
 logger = logging.getLogger("cliptor")
+
+
+class RenderError(RuntimeError):
+    """Raised when FFmpeg fails, times out, or produces an empty clip."""
+
+
+def render_timeout_for(clip_duration: float) -> float:
+    """Time limit for one clip: at least RENDER_TIMEOUT_SECONDS, and at least 5x the clip length."""
+    return max(RENDER_TIMEOUT_SECONDS, 5.0 * clip_duration)
+
+
+def get_render_log_path(output_mp4_path: Path) -> Path:
+    """Returns logs/clip_01.log for an output file clip_01.mp4."""
+    return LOGS_DIR / f"{output_mp4_path.stem}.log"
+
+
+def _escape_filter_text(text: str) -> str:
+    """Escapes simple text for an FFmpeg filter: forward slashes, drive colon, quotes."""
+    text = text.replace("\\", "/")
+    text = text.replace(":", "\\:")   # escape the drive colon (C:)
+    text = text.replace("'", "\\'")   # escape apostrophes (e.g. O'Brien)
+    return f"'{text}'"                # single quotes keep spaces together
+
+
+def _read_log_tail(log_path: Path, max_lines: int = 15) -> str:
+    """Returns the last few lines of a log file, for error messages."""
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return "(log file could not be read)"
+    return "\n".join(lines[-max_lines:])
+
+
+def _kill_process_tree(process: subprocess.Popen) -> None:
+    """
+    Kills FFmpeg and any child processes.
+    On Windows taskkill /T is needed, otherwise ffmpeg.exe can be left running.
+    """
+    if process.poll() is not None:
+        return
+
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=30,
+            )
+        except (OSError, subprocess.SubprocessError) as e:
+            logger.error(f"taskkill failed for FFmpeg pid {process.pid}: {e}")
+
+    # Second attempt in case taskkill was missing or slow.
+    try:
+        process.kill()
+    except OSError:
+        pass
+
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        logger.error(f"FFmpeg pid {process.pid} did not exit after being killed.")
+
 
 FFMPEG_INSTALL_INSTRUCTIONS = """
 ========================================================================
@@ -130,13 +197,66 @@ def extract_audio_16k_mono(input_video_path: Path, output_wav_path: Path) -> Pat
 
     return output_wav_path
 
+def _run_ffmpeg(cmd: list, log_path: Path, timeout_seconds: float, cwd: Path) -> None:
+    """
+    Runs FFmpeg safely:
+      - arguments are a list, never a shell string
+      - stdin is closed (-nostdin + DEVNULL) so FFmpeg cannot wait for input
+      - stdout AND stderr go straight into the log file, so a full pipe can't block it
+      - if it runs too long, the whole process tree is killed
+    """
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    logger.info(f"FFmpeg command: {shlex.join(cmd)}")
+    logger.info(f"FFmpeg log file: {log_path}")
+
+    creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+
+    with open(log_path, "w", encoding="utf-8", errors="replace") as log_file:
+        log_file.write(f"# Command: {shlex.join(cmd)}\n")
+        log_file.write(f"# cwd: {cwd}\n")
+        log_file.write(f"# Timeout: {timeout_seconds:.0f}s\n\n")
+        log_file.flush()
+
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            cwd=str(cwd),
+            creationflags=creationflags,
+        )
+        log_file.write(f"# pid: {process.pid}\n\n")
+        log_file.flush()
+
+        try:
+            process.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            _kill_process_tree(process)
+            message = (
+                f"FFmpeg was killed after the {timeout_seconds:.0f}s time limit. "
+                f"See {log_path} for details."
+            )
+            log_file.write(f"\n[cliptor] {message}\n")
+            log_file.flush()
+            logger.error(message)
+            raise RenderError(message) from None
+
+    if process.returncode != 0:
+        tail = _read_log_tail(log_path)
+        raise RenderError(
+            f"FFmpeg failed (exit code {process.returncode}). See {log_path}.\n{tail}"
+        )
+
+
 def render_vertical_clip(
     input_video_path: Path,
     start_time: float,
     end_time: float,
     output_mp4_path: Path,
     subtitle_ass_path: Optional[Path] = None,
-    crop_style: str = "blurred_background"
+    crop_style: str = "blurred_background",
+    timeout_seconds: Optional[float] = None,
+    log_path: Optional[Path] = None
 ) -> Path:
     """
     Renders an accurate vertical 9:16 (1080x1920) clip using FFmpeg.
@@ -145,6 +265,9 @@ def render_vertical_clip(
       - 'center_crop': cropped to center 1080x1920
     Burns in captions from subtitle_ass_path if provided.
     Encodes with libx264, aac, yuv420p, crf 20, preset veryfast.
+
+    FFmpeg runs with -nostdin, writes stdout+stderr to logs/clip_XX.log,
+    and is killed if it passes the time limit (default: max(RENDER_TIMEOUT_SECONDS, 5x clip)).
     """
     ffmpeg_exe = find_ffmpeg_executable()
     if not ffmpeg_exe:
@@ -152,14 +275,23 @@ def render_vertical_clip(
 
     duration = max(1.0, end_time - start_time)
     work_dir = output_mp4_path.parent
+    work_dir.mkdir(parents=True, exist_ok=True)
+
     sub_arg = ""
     if subtitle_ass_path and subtitle_ass_path.exists():
-        # Pass filename relative to work_dir so drive-letters and colons don't interfere
-        sub_arg = f",subtitles={subtitle_ass_path.name}"
+        # FFmpeg reads captions from the clip folder (cwd), so it never has to parse
+        # "C:", spaces or apostrophes from the full Windows path.
+        caption_file = subtitle_ass_path
+        if subtitle_ass_path.resolve().parent != work_dir.resolve():
+            # Captions live elsewhere: copy them beside the clip under a plain name.
+            caption_file = work_dir / f"{subtitle_ass_path.stem}.ass"
+            shutil.copyfile(subtitle_ass_path, caption_file)
+        sub_arg = f",subtitles={_escape_filter_text(caption_file.name)}"
 
     cmd = [
         ffmpeg_exe,
         "-y",
+        "-nostdin",
         "-ss", f"{start_time:.3f}",
         "-t", f"{duration:.3f}",
         "-i", str(input_video_path.resolve()),
@@ -189,21 +321,18 @@ def render_vertical_clip(
         str(output_mp4_path.name)
     ])
 
-    logger.info(f"Rendering clip to {output_mp4_path.name} (Style: {crop_style}, Duration: {duration:.1f}s)...")
-    res = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        cwd=str(work_dir)
-    )
+    limit = timeout_seconds if timeout_seconds is not None else render_timeout_for(duration)
+    active_log = log_path or get_render_log_path(output_mp4_path)
 
-    if res.returncode != 0:
-        logger.error(f"FFmpeg render error for {output_mp4_path.name}:\n{res.stderr}")
-        raise RuntimeError(f"FFmpeg failed to render clip: {res.stderr.strip()[:400]}")
+    logger.info(
+        f"Rendering clip to {output_mp4_path.name} "
+        f"(Style: {crop_style}, Duration: {duration:.1f}s, Timeout: {limit:.0f}s)..."
+    )
+    _run_ffmpeg(cmd, active_log, limit, cwd=work_dir)
 
     if not output_mp4_path.exists() or output_mp4_path.stat().st_size == 0:
-        raise RuntimeError(f"Output clip {output_mp4_path.name} was not created or is empty.")
+        raise RenderError(f"Output clip {output_mp4_path.name} was not created or is empty.")
 
     logger.info(f"Successfully rendered: {output_mp4_path.name} ({output_mp4_path.stat().st_size} bytes)")
     return output_mp4_path
+

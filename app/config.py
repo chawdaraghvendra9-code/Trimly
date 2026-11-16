@@ -60,5 +60,13 @@ DEFAULT_CROP_STYLE = os.getenv("DEFAULT_CROP_STYLE", "blurred_background").strip
 JOBS_DIR = BASE_DIR / "jobs_data"
 JOBS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Folder for FFmpeg render logs (logs/clip_01.log)
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Base time limit (seconds) for rendering ONE clip before FFmpeg is killed.
+# app/video.py uses max(this, 5 x clip length), so long clips get more time.
+RENDER_TIMEOUT_SECONDS = float(os.getenv("RENDER_TIMEOUT_SECONDS", "300"))
+
 # Allowed video extensions
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm"}
