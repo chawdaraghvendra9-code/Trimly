@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio Editor - Cliptor Clip Studio</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    @media (max-width: 900px) {
+      .editor-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Vertical Preview Player Column */
+    .player-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      position: sticky;
+      top: 20px;
+    }
+    .vertical-phone-frame {
+      width: 100%;
+      max-width: 300px;
+      aspect-ratio: 9 / 16;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 0 auto 14px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      border: 2px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .vertical-video-player {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+    .active-clip-info {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    /* Candidate Cards */
+    .candidates-panel {
+      background: rgba(15, 23, 42, 0.3);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .panel-header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 14px;
+    }
+    .candidate-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+      transition: all 0.2s ease;
+    }
+    .candidate-card.active-preview {
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+    .card-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .badge-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .score-badge {
+      background: #4338ca;
+      color: #e0e7ff;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+    .source-tag {
+      font-size: 0.75rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: #334155;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+    .time-tag {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+    .reason-text {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+    .completeness-note {
+      font-size: 0.82rem;
+      color: #a5b4fc;
+      margin-bottom: 10px;
+      background: rgba(99, 102, 241, 0.1);
+      padding: 6px 10px;
+      border-radius: 6px;
+      border-left: 3px solid #6366f1;
+    }
+    .clip-quote {
+      background: rgba(15, 23, 42, 0.6);
+      border-left: 3px solid #475569;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    /* Trim & Nudge Controls */
+    .trim-box {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .trim-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .trim-label {
+      color: #cbd5e1;
+      font-weight: 600;
+      width: 50px;
+    }
+    .nudge-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-nudge {
+      background: #334155;
+      color: #fff;
+      border: 1px solid #475569;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    .btn-nudge:hover {
+      background: #475569;
+    }
+    .nudge-input {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #38bdf8;
+      padding: 3px 6px;
+      border-radius: 4px;
+      width: 65px;
+      text-align: center;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+    .style-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      margin-top: 6px;
+    }
+    .style-select {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    .card-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .action-group-left {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-download {
+      background: #059669;
+      color: #fff;
+    }
+    .btn-download:hover {
+      background: #047857;
+    }
+    .btn-rerender {
+      background: #2563eb;
+      color: #fff;
+    }
+    .btn-rerender:hover {
+      background: #1d4ed8;
+    }
+
+    /* Tabs */
+    .tab-header {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      color: #fff;
+      background: #334155;
+    }
+    .transcript-scroll {
+      max-height: 520px;
+      overflow-y: auto;
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      border: 1px solid #334155;
+    }
+    .transcript-line {
+      display: flex;
+      gap: 10px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .transcript-line:hover {
+      background: #1e293b;
+    }
+    .time-badge {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      background: #1e293b;
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container" style="max-width: 1100px;">
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">✂️</span>
+        <h1>Cliptor Clip Studio</h1>
+      </div>
+      <p class="tagline">Job ID: <span id="displayJobId">{{ job.job_id }}</span></p>
+    </header>
+
+    <main class="content-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <span class="status-badge {{ job.status }}" id="jobStatusBadge">Status: {{ job.status }}</span>
+          <h2 style="font-size: 1.2rem; word-break: break-all;">{{ job.original_filename }}</h2>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <a href="/api/jobs/{{ job.job_id }}/download-all" id="btnDownloadAll" class="btn btn-primary" style="display: none;">
+            📦 Download All (.ZIP)
+          </a>
+          <a href="/" class="btn btn-secondary">New Upload</a>
+        </div>
+      </div>
+
+      <!-- Processing Progress Box -->
+      <div id="processingBox" class="progress-box" style="margin-top: 16px;">
+        <div class="progress-bar-container">
+          <div id="jobProgressBar" class="progress-bar" style="width: {{ job.progress_percent }}%;"></div>
+        </div>
+        <p id="jobProgressText" class="progress-text">{{ job.progress_message }}</p>
+      </div>
+
+      <!-- Error Message Banner -->
+      <div id="errorBanner" class="error-banner" style="display: {% if job.error %}flex{% else %}none{% endif %};">
+        <span class="error-icon">❌</span>
+        <div>
+          <strong>Processing Error:</strong>
+          <span id="errorMessage">{{ job.error or '' }}</span>
+          <p style="font-size: 0.8rem; margin-top: 4px; color: #fca5a5;">
+            Technical details have been saved to <code>cliptor.log</code> and printed to the terminal.
+          </p>
+        </div>
+      </div>
+
+      <!-- Timing & Benchmark Metrics Box -->
+      <div id="timingBox" style="display: none; background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; margin-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <h4 style="font-size: 1rem; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+            ⏱️ Stage Timing Breakdown & Processing Speed
+          </h4>
+          <span id="timingSpeedRatio" style="font-size: 0.85rem; background: #4338ca; color: #e0e7ff; padding: 4px 12px; border-radius: 20px; font-weight: 700;">
+            -
+          </span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; font-size: 0.82rem; text-align: center;">
+          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="color: #94a3b8; margin-bottom: 4px;">Video Length</div>
+            <strong id="timeVideoLen" style="color: #f8fafc; font-size: 1rem;">-</strong>
+          </div>
+          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="color: #94a3b8; margin-bottom: 4px;">1. Audio Extract</div>
+            <strong id="timeAudio" style="color: #f8fafc; font-size: 1rem;">-</strong>
+          </div>
+          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="color: #94a3b8; margin-bottom: 4px;">2. Transcription</div>
+            <strong id="timeTranscribe" style="color: #f8fafc; font-size: 1rem;">-</strong>
+          </div>
+          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="color: #94a3b8; margin-bottom: 4px;">3. Highlights</div>
+            <strong id="timeHighlights" style="color: #f8fafc; font-size: 1rem;">-</strong>
+          </div>
+          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="color: #94a3b8; margin-bottom: 4px;">4. Clip Rendering</div>
+            <strong id="timeRender" style="color: #f8fafc; font-size: 1rem;">-</strong>
+          </div>
+          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #6366f1;">
+            <div style="color: #a5b4fc; margin-bottom: 4px;">Total Pipeline</div>
+            <strong id="timeTotal" style="color: #38bdf8; font-size: 1rem;">-</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-layout">
+        <!-- Left Column: Real 9:16 Vertical Preview Player -->
+        <div class="player-card">
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">Vertical 9:16 Preview</h3>
+          <p class="active-clip-info" id="activeClipTitle">Playing: Ready to select</p>
+
+          <div class="vertical-phone-frame">
+            <video id="verticalPlayer" class="vertical-video-player" controls preload="auto" playsinline>
+              <source id="verticalPlayerSource" src="" type="video/mp4">
+              Your browser does not support HTML5 video.
+            </video>
+          </div>
+
+          <div id="playerNotice" style="font-size: 0.8rem; color: #94a3b8;">
+            Plays the real rendered 1080x1920 MP4 file with burned-in captions.
+          </div>
+        </div>
+
+        <!-- Right Column: Tabs (Clips & Transcript) -->
+        <div class="candidates-panel">
+          <div class="tab-header">
+            <button class="tab-btn active" id="tabCandidatesBtn" onclick="switchTab('candidates')">
+              Rendered Clips (<span id="candidateCountLabel">0</span>)
+            </button>
+            <button class="tab-btn" id="tabTranscriptBtn" onclick="switchTab('transcript')">
+              Full Transcript
+            </button>
+          </div>
+
+          <!-- Tab Content: Clip Candidates -->
+          <div id="candidatesTabContent">
+            <div id="candidatesList">
+              <p style="color: var(--text-muted); font-style: italic;">
+                Processing video, selecting highlights, and rendering 9:16 clips with captions...
+              </p>
+            </div>
+          </div>
+
+          <!-- Tab Content: Transcript -->
+          <div id="transcriptTabContent" style="display: none;">
+            <div id="transcriptBox" class="transcript-scroll">
+              <p style="color: var(--text-muted); font-style: italic;">Loading transcript...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <p>Cliptor Clip Studio • Local & Private Video Clipper</p>
+    </footer>
+  </div>
+
+  <script>
+    const JOB_ID = "{{ job.job_id }}";
+    const verticalPlayer = document.getElementById("verticalPlayer");
+    const verticalPlayerSource = document.getElementById("verticalPlayerSource");
+    const activeClipTitle = document.getElementById("activeClipTitle");
+    const jobStatusBadge = document.getElementById("jobStatusBadge");
+    const processingBox = document.getElementById("processingBox");
+    const jobProgressBar = document.getElementById("jobProgressBar");
+    const jobProgressText = document.getElementById("jobProgressText");
+    const errorBanner = document.getElementById("errorBanner");
+    const errorMessage = document.getElementById("errorMessage");
+    const btnDownloadAll = document.getElementById("btnDownloadAll");
+
+    const candidatesList = document.getElementById("candidatesList");
+    const candidateCountLabel = document.getElementById("candidateCountLabel");
+    const transcriptBox = document.getElementById("transcriptBox");
+
+    let currentCandidates = [];
+
+    // Tab switching
+    function switchTab(tab) {
+      const candidatesTab = document.getElementById("candidatesTabContent");
+      const transcriptTab = document.getElementById("transcriptTabContent");
+      const candBtn = document.getElementById("tabCandidatesBtn");
+      const transBtn = document.getElementById("tabTranscriptBtn");
+
+      if (tab === "candidates") {
+        candidatesTab.style.display = "block";
+        transcriptTab.style.display = "none";
+        candBtn.classList.add("active");
+        transBtn.classList.remove("active");
+      } else {
+        candidatesTab.style.display = "none";
+        transcriptTab.style.display = "block";
+        candBtn.classList.remove("active");
+        transBtn.classList.add("active");
+      }
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Play rendered clip in the vertical player
+    function playRenderedClip(clipUrl, title, cardElement) {
+      document.querySelectorAll(".candidate-card").forEach(c => c.classList.remove("active-preview"));
+      if (cardElement) cardElement.classList.add("active-preview");
+
+      activeClipTitle.textContent = `Playing: ${title}`;
+      verticalPlayerSource.src = clipUrl;
+      verticalPlayer.load();
+      verticalPlayer.play().catch(e => console.log("Autoplay was prevented:", e));
+    }
+
+    // Nudge trim helper
+    function nudgeTime(inputId, delta) {
+      const input = document.getElementById(inputId);
+      if (input) {
+        let val = parseFloat(input.value) || 0;
+        val = Math.max(0, Math.round((val + delta) * 10) / 10);
+        input.value = val;
+      }
+    }
+
+    // Re-render single clip on trim
+    async function triggerReRender(clipId) {
+      const startInput = document.getElementById(`start_${clipId}`);
+      const endInput = document.getElementById(`end_${clipId}`);
+      const styleSelect = document.getElementById(`style_${clipId}`);
+      const renderBtn = document.getElementById(`btnRender_${clipId}`);
+
+      const newStart = parseFloat(startInput.value);
+      const newEnd = parseFloat(endInput.value);
+      const newStyle = styleSelect ? styleSelect.value : "blurred_background";
+
+      if (isNaN(newStart) || isNaN(newEnd) || newEnd <= newStart) {
+        alert("Please specify a valid start and end time (end must be greater than start).");
+        return;
+      }
+
+      renderBtn.disabled = true;
+      renderBtn.textContent = "⏳ Rendering...";
+
+      try {
+        const resp = await fetch(`/api/jobs/${JOB_ID}/clips/${clipId}/render`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            start: newStart,
+            end: newEnd,
+            crop_style: newStyle
+          })
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert(`Render failed: ${err.detail || "Server error"}`);
+          return;
+        }
+
+        const data = await resp.json();
+        const updatedCand = data.candidate;
+
+        // Auto-play the freshly re-rendered clip
+        const cardElem = document.getElementById(`card_${clipId}`);
+        playRenderedClip(updatedCand.rendered_url, updatedCand.title, cardElem);
+
+        // Update card info
+        const durLabel = document.getElementById(`dur_${clipId}`);
+        if (durLabel) {
+          durLabel.innerHTML = `⏱️ ${formatTime(updatedCand.start)} - ${formatTime(updatedCand.end)} (${Math.round(updatedCand.duration)}s) <span style="font-size: 0.8rem; color: #38bdf8; margin-left: 8px;">⚡ Re-rendered in ${updatedCand.last_render_seconds}s</span>`;
+        }
+
+      } catch (e) {
+        console.error("Re-render error:", e);
+        alert(`Network error during re-render: ${e.message}`);
+      } finally {
+        renderBtn.disabled = false;
+        renderBtn.textContent = "🔄 Re-render Clip";
+      }
+    }
+
+    // Render candidate cards in UI
+    function renderCandidates(candidates, jobCropStyle) {
+      currentCandidates = candidates || [];
+      if (currentCandidates.length === 0) {
+        candidatesList.innerHTML = "<p style='color: var(--text-muted);'>No clips ready yet.</p>";
+        candidateCountLabel.textContent = "0";
+        return;
+      }
+
+      candidateCountLabel.textContent = currentCandidates.length;
+      candidatesList.innerHTML = "";
+
+      currentCandidates.forEach((cand, idx) => {
+        const clipId = cand.id || `clip_${(idx + 1).toString().padStart(2, '0')}`;
+        const sourceLabel = cand.is_basic ? "Basic Suggestion" : "AI Highlight";
+        const typeLabel = (cand.type || "HIGHLIGHT").toUpperCase();
+        const completenessNote = cand.completeness_note ? `🎯 <strong>Completeness:</strong> ${cand.completeness_note}` : "";
+
+        const card = document.createElement("div");
+        card.className = "candidate-card";
+        card.id = `card_${clipId}`;
+
+        card.innerHTML = `
+          <div class="card-top-row">
+            <span class="card-title">${idx + 1}. ${cand.title}</span>
+            <div class="badge-group">
+              <span class="score-badge">⭐ ${cand.score}/10</span>
+              <span class="source-tag">${typeLabel}</span>
+              <span class="source-tag ${cand.is_basic ? 'basic' : ''}">${sourceLabel}</span>
+            </div>
+          </div>
+          <div class="time-tag" id="dur_${clipId}">
+            ⏱️ ${formatTime(cand.start)} - ${formatTime(cand.end)} (${Math.round(cand.duration)}s)
+            ${cand.last_render_seconds ? `<span style="font-size: 0.8rem; color: #38bdf8; margin-left: 8px;">⚡ Rendered in ${cand.last_render_seconds}s</span>` : ''}
+          </div>
+          <div class="reason-text">💡 ${cand.reason}</div>
+          ${completenessNote ? `<div class="completeness-note">${completenessNote}</div>` : ""}
+          <div class="clip-quote">"${cand.text}"</div>
+
+          <!-- Trim & Crop Style Controls -->
+          <div class="trim-box">
+            <div class="trim-row">
+              <span class="trim-label">Start:</span>
+              <div class="nudge-group">
+                <button type="button" class="btn-nudge" onclick="nudgeTime('start_${clipId}', -1.0)">-1s</button>
+                <input type="number" step="0.5" id="start_${clipId}" class="nudge-input" value="${cand.start}">
+                <button type="button" class="btn-nudge" onclick="nudgeTime('start_${clipId}', 1.0)">+1s</button>
+              </div>
+              <span class="trim-label" style="text-align: right;">End:</span>
+              <div class="nudge-group">
+                <button type="button" class="btn-nudge" onclick="nudgeTime('end_${clipId}', -1.0)">-1s</button>
+                <input type="number" step="0.5" id="end_${clipId}" class="nudge-input" value="${cand.end}">
+                <button type="button" class="btn-nudge" onclick="nudgeTime('end_${clipId}', 1.0)">+1s</button>
+              </div>
+            </div>
+            <div class="style-row">
+              <span>Layout Style:</span>
+              <select id="style_${clipId}" class="style-select">
+                <option value="blurred_background" ${jobCropStyle !== 'center_crop' ? 'selected' : ''}>Blurred Background</option>
+                <option value="center_crop" ${jobCropStyle === 'center_crop' ? 'selected' : ''}>Center Crop</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Card Actions -->
+          <div class="card-actions">
+            <div class="action-group-left">
+              <button class="btn btn-primary btn-sm btn-play" onclick="playRenderedClip('${cand.rendered_url}', '${cand.title.replace(/'/g, "\\'")}', document.getElementById('card_${clipId}'))">
+                ▶ Play Rendered Clip
+              </button>
+              <button class="btn btn-rerender btn-sm" id="btnRender_${clipId}" onclick="triggerReRender('${clipId}')">
+                🔄 Re-render Clip
+              </button>
+            </div>
+            <a href="/api/jobs/${JOB_ID}/clips/${cand.rendered_file}/download" class="btn btn-download btn-sm" download>
+              📥 Download MP4
+            </a>
+          </div>
+        `;
+
+        candidatesList.appendChild(card);
+      });
+
+      // Auto-preview first clip if player is idle
+      if (!verticalPlayerSource.src && currentCandidates.length > 0) {
+        const first = currentCandidates[0];
+        playRenderedClip(first.rendered_url, first.title, document.getElementById(`card_${first.id}`));
+      }
+    }
+
+    // Render Transcript
+    function renderTranscript(transcript) {
+      if (!transcript || !transcript.segments) return;
+      transcriptBox.innerHTML = "";
+      transcript.segments.forEach(seg => {
+        const line = document.createElement("div");
+        line.className = "transcript-line";
+        line.innerHTML = `
+          <span class="time-badge">${formatTime(seg.start)} - ${formatTime(seg.end)}</span>
+          <span style="color: #e2e8f0;">${seg.text}</span>
+        `;
+        transcriptBox.appendChild(line);
+      });
+    }
+
+    // Render Timing Metrics
+    function updateTimingMetrics(timing) {
+      if (!timing || !timing.total_processing_seconds) return;
+      const timingBox = document.getElementById("timingBox");
+      if (timingBox) timingBox.style.display = "block";
+
+      const videoSec = timing.video_duration_seconds || 0;
+      const videoMin = timing.video_duration_minutes || (videoSec / 60).toFixed(1);
+      document.getElementById("timeVideoLen").textContent = `${Math.round(videoSec)}s (${videoMin}m)`;
+      document.getElementById("timeAudio").textContent = `${timing.audio_extraction_seconds || 0}s`;
+      document.getElementById("timeTranscribe").textContent = `${timing.transcription_seconds || 0}s`;
+      document.getElementById("timeHighlights").textContent = `${timing.highlight_picking_seconds || 0}s`;
+      document.getElementById("timeRender").textContent = `${timing.rendering_seconds || 0}s`;
+      document.getElementById("timeTotal").textContent = `${timing.total_processing_seconds || 0}s`;
+
+      const ratio = timing.seconds_per_minute_video || 0;
+      document.getElementById("timingSpeedRatio").textContent = `⚡ Processing Rate: ${ratio}s per minute of video`;
+    }
+
+    // Load assets
+    async function loadJobData(cropStyle, timing) {
+      if (timing) {
+        updateTimingMetrics(timing);
+      }
+      try {
+        const [candRes, transRes] = await Promise.all([
+          fetch(`/api/jobs/${JOB_ID}/candidates`),
+          fetch(`/api/jobs/${JOB_ID}/transcript`)
+        ]);
+
+        if (candRes.ok) {
+          const cands = await candRes.json();
+          renderCandidates(cands, cropStyle);
+          btnDownloadAll.style.display = "inline-flex";
+        }
+        if (transRes.ok) {
+          const trans = await transRes.json();
+          renderTranscript(trans);
+        }
+      } catch (e) {
+        console.error("Error loading job assets:", e);
+      }
+    }
+
+    // Polling function
+    let pollInterval = null;
+    async function checkJobStatus() {
+      try {
+        const res = await fetch(`/api/jobs/${JOB_ID}`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        jobStatusBadge.textContent = `Status: ${data.status}`;
+        jobStatusBadge.className = `status-badge ${data.status}`;
+        jobProgressBar.style.width = `${data.progress_percent}%`;
+        jobProgressText.textContent = data.progress_message;
+
+        if (data.timing) {
+          updateTimingMetrics(data.timing);
+        }
+
+        if (data.status === "completed" || data.status === "ready") {
+          clearInterval(pollInterval);
+          processingBox.style.display = "none";
+          loadJobData(data.crop_style, data.timing);
+        } else if (data.status === "error") {
+          clearInterval(pollInterval);
+          errorMessage.textContent = data.error || "An unexpected error occurred.";
+          errorBanner.style.display = "flex";
+          jobProgressBar.style.backgroundColor = "#ef4444";
+        }
+      } catch (err) {
+        console.error("Status polling error:", err);
+      }
+    }
+
+    pollInterval = setInterval(checkJobStatus, 1500);
+    checkJobStatus();
+  </script>
+</body>
+</html>

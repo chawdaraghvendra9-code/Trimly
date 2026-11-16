@@ -1,0 +1,14 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Job data and uploads (clips, temporary files)
+jobs_data/*
+!jobs_data/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db

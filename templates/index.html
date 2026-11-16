@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cliptor Clip Studio - Create Viral Shorts & Reels</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">✂️</span>
+        <h1>Cliptor Clip Studio</h1>
+      </div>
+      <p class="tagline">Turn long videos into 9:16 vertical shorts with burned-in subtitles</p>
+    </header>
+
+    <main class="content-box">
+      <!-- Legal Notice & Disclaimer Banner -->
+      <div class="notice-banner">
+        <span class="notice-icon">⚠️</span>
+        <div class="notice-text">
+          <strong>Important:</strong> Only upload content you own or have permission to clip.
+        </div>
+      </div>
+
+      <!-- Upload Form Section -->
+      <section class="upload-section">
+        <h2>1. Upload Your Long Video</h2>
+        <p class="upload-subtext">Supported formats: MP4, MOV, MKV, WEBM (Max {{ max_file_size_mb }}MB, up to {{ max_video_minutes }} minutes)</p>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+          <!-- Layout Style Selection -->
+          <div style="margin-bottom: 20px; background: rgba(15, 23, 42, 0.4); padding: 14px 18px; border-radius: 10px; border: 1px solid var(--card-border);">
+            <label for="cropStyleSelect" style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.95rem;">
+              🎨 Vertical 9:16 Layout Style:
+            </label>
+            <select id="cropStyleSelect" name="crop_style" style="background: #0f172a; border: 1px solid #475569; color: #f8fafc; padding: 8px 12px; border-radius: 6px; width: 100%; font-size: 0.95rem;">
+              <option value="blurred_background" selected>
+                Blurred Background (Recommended: fits full horizontal video centered over blurred zoom)
+              </option>
+              <option value="center_crop">
+                Center Crop (Direct 1080x1920 fill cropped from center)
+              </option>
+            </select>
+          </div>
+
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-icon">📁</div>
+            <p class="drop-zone-title">Drag & drop your video here</p>
+            <p class="drop-zone-subtitle">or click to browse from your computer</p>
+            <input type="file" id="videoFileInput" name="video_file" accept=".mp4,.mov,.mkv,.avi,.webm" required>
+            <div id="fileSelectionInfo" class="file-selection-info" style="display:none;"></div>
+          </div>
+
+          <div class="upload-actions">
+            <button type="submit" id="uploadBtn" class="btn btn-primary" disabled>
+              Upload & Start Processing
+            </button>
+          </div>
+        </form>
+
+        <!-- Upload Progress & Status -->
+        <div id="uploadProgressBox" class="progress-box" style="display:none;">
+          <div class="progress-bar-container">
+            <div id="uploadProgressBar" class="progress-bar" style="width: 0%;"></div>
+          </div>
+          <p id="uploadStatusText" class="progress-text">Uploading video... 0%</p>
+        </div>
+
+        <!-- Error Message Alert -->
+        <div id="errorMessageAlert" class="error-banner" style="display:none;">
+          <span class="error-icon">❌</span>
+          <span id="errorMessageText"></span>
+        </div>
+      </section>
+
+      <!-- How it Works Simple Steps -->
+      <section class="features-summary">
+        <h3>How Cliptor Works</h3>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <h4>Upload</h4>
+            <p>Upload any MP4 or horizontal video up to 30 mins.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <h4>Transcribe & Find</h4>
+            <p>Whisper AI creates timestamps; smart suggestions find the best moments.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <h4>Preview & Tweak</h4>
+            <p>Review 5-8 clips, adjust start/end boundaries cleanly.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <h4>Export 9:16</h4>
+            <p>Download vertical clips with animated 2-3 word captions.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>Cliptor Clip Studio • Local & Private Video Clipper</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
