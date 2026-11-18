@@ -70,3 +70,19 @@ RENDER_TIMEOUT_SECONDS = float(os.getenv("RENDER_TIMEOUT_SECONDS", "300"))
 
 # Allowed video extensions
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm"}
+
+# --- Import from link: streaming sites (YouTube, TikTok, Instagram) ---
+# Highest video quality we download. 720p keeps downloads small and fast;
+# the format prefers mp4 (avc1 video + m4a audio) and falls back if needed.
+YTDLP_MAX_HEIGHT = int(os.getenv("YTDLP_MAX_HEIGHT", "720"))
+
+# Optional: a cookies.txt file exported from a browser. Needed only when a site
+# asks to "confirm you're not a bot". Leave empty to stay signed out.
+YTDLP_COOKIES_FILE = os.getenv("YTDLP_COOKIES_FILE", "").strip()
+
+# Optional: read cookies straight from a browser, e.g. "chrome" or "edge".
+# Example: YTDLP_COOKIES_FROM_BROWSER=chrome
+YTDLP_COOKIES_FROM_BROWSER = os.getenv("YTDLP_COOKIES_FROM_BROWSER", "").strip()
+
+# How long yt-dlp may spend on one video before giving up (seconds)
+YTDLP_TIMEOUT_SECONDS = float(os.getenv("YTDLP_TIMEOUT_SECONDS", "1800"))

@@ -4,6 +4,7 @@ Processes jobs one at a time: audio extraction -> transcription -> highlight sug
 Includes detailed stage-by-stage timing instrumentation and benchmark metrics.
 """
 import json
+import os
 import uuid
 import time
 import threading
@@ -11,16 +12,24 @@ import queue
 import traceback
 import zipfile
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
-from app.config import JOBS_DIR, WHISPER_MODEL, DEFAULT_CROP_STYLE
+from app.config import JOBS_DIR, WHISPER_MODEL, DEFAULT_CROP_STYLE, MAX_VIDEO_MINUTES
 from app.logger import logger
+from app.downloader import (
+    LinkError,
+    cleanup_partial_download,
+    download_from_link,
+    friendly_link_error,
+)
 from app.video import (
     extract_audio_16k_mono,
     find_ffmpeg_executable,
     FFMPEG_INSTALL_INSTRUCTIONS,
     render_vertical_clip,
-    get_audio_duration_seconds
+    get_audio_duration_seconds,
+    probe_video_file,
+    InvalidVideoError,
 )
 from app.transcription import (
     transcribe_audio_file,
@@ -29,7 +38,12 @@ from app.transcription import (
     TranscriptionError
 )
 from app.highlights import pick_highlights
+from app.snapping import snap_to_word_boundaries
 from app.subtitles import generate_ass_subtitles_for_clip
+from app.fonts import DEFAULT_FONT_STYLE, get_font_style
+
+# Split screen: captions sit just above the seam (about 53-58% of the frame).
+SPLIT_CAPTION_MARGIN_V = 806
 
 # Queue for background jobs
 _job_queue: queue.Queue = queue.Queue()
@@ -64,11 +78,14 @@ def load_job(job_id: str) -> Optional[Dict[str, Any]]:
         return None
 
 def save_job(job_id: str, data: Dict[str, Any]) -> None:
-    """Saves updated job data to job.json."""
+    """Saves updated job data to job.json.
+    Writes to a temp file then swaps it in, so the polling UI never reads a half-written file."""
     job_file = get_job_file(job_id)
+    temp_file = job_file.with_suffix(".json.tmp")
     try:
-        with open(job_file, "w", encoding="utf-8") as f:
+        with open(temp_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
+        os.replace(temp_file, job_file)
     except Exception as e:
         logger.error(f"Error saving {job_file}: {e}")
 
@@ -83,9 +100,29 @@ def update_job_status(job_id: str, status: str, message: str, percent: int, erro
             data["error"] = error
         save_job(job_id, data)
 
-def create_job(original_filename: str, file_size_bytes: int, crop_style: str = DEFAULT_CROP_STYLE) -> Dict[str, Any]:
+def create_job(
+    original_filename: str,
+    file_size_bytes: int,
+    crop_style: str = DEFAULT_CROP_STYLE,
+    source_url: Optional[str] = None,
+    font_style: str = DEFAULT_FONT_STYLE,
+    video_style: str = "smart_fit",
+    solid_color: str = "#000000",
+    gradient_top: str = "#0F172A",
+    gradient_bottom: str = "#1E3A8A",
+    progress_bar: bool = False,
+    progress_color: str = "#38BDF8",
+    hook_enabled: bool = False,
+    hook_duration: int = 3,
+    smart_aspect: str = "4:5",
+    smart_zoom: bool = False,
+    smart_background: str = "blurred",
+    split_background: str = "random",
+    split_divider: bool = True,
+) -> Dict[str, Any]:
     """
     Creates a new job with a unique folder and an initial job.json file.
+    When source_url is given the job is an "import from link" job.
     """
     job_id = f"job_{int(time.time())}_{uuid.uuid4().hex[:6]}"
     job_dir = get_job_dir(job_id)
@@ -96,9 +133,29 @@ def create_job(original_filename: str, file_size_bytes: int, crop_style: str = D
         "original_filename": original_filename,
         "file_size_bytes": file_size_bytes,
         "crop_style": crop_style,
-        "status": "uploaded",
-        "progress_message": "Video uploaded. Queued for processing...",
-        "progress_percent": 5,
+        "font_style": font_style,
+        "video_style": video_style,
+        "solid_color": solid_color,
+        "gradient_top": gradient_top,
+        "gradient_bottom": gradient_bottom,
+        "progress_bar": progress_bar,
+        "progress_color": progress_color,
+        "hook_enabled": hook_enabled,
+        "hook_duration": hook_duration,
+        "smart_aspect": smart_aspect,
+        "smart_zoom": smart_zoom,
+        "smart_background": smart_background,
+        "split_background": split_background,
+        "split_divider": split_divider,
+        "source": "link" if source_url else "upload",
+        "source_url": source_url,
+        # A link job starts as "downloading"; an upload starts as "uploaded".
+        "status": "downloading" if source_url else "uploaded",
+        "progress_message": (
+            "Waiting to start the download..." if source_url
+            else "Video uploaded. Queued for processing..."
+        ),
+        "progress_percent": 0 if source_url else 5,
         "duration_seconds": 0.0,
         "created_at": time.time(),
         "error": None,
@@ -110,12 +167,166 @@ def create_job(original_filename: str, file_size_bytes: int, crop_style: str = D
     save_job(job_id, job_data)
     return job_data
 
+def _save_candidates_progress(job_id: str, candidates: List[Dict[str, Any]]) -> None:
+    """Writes candidate statuses into job.json so the polling UI can show each clip as it finishes."""
+    data = load_job(job_id)
+    if data:
+        data["candidates"] = candidates
+        save_job(job_id, data)
+
+def start_link_import(job_id: str, url: str) -> None:
+    """
+    Starts downloading a video link in the background.
+    When the file is downloaded and checked, the normal pipeline is queued.
+    """
+    thread = threading.Thread(
+        target=_run_link_import,
+        args=(job_id, url),
+        daemon=True,
+        name=f"import-{job_id}",
+    )
+    thread.start()
+    logger.info(f"[{job_id}] Link import started.")
+
+
+def _run_link_import(job_id: str, url: str) -> None:
+    """Background worker: download -> ffprobe check -> duration limit -> normal pipeline."""
+    job_dir = get_job_dir(job_id)
+    try:
+        update_job_status(job_id, "downloading", "Connecting to the link...", 2)
+
+        def on_progress(downloaded: int, total: int) -> None:
+            if total > 0:
+                percent = min(95, max(2, int(downloaded * 100 / total)))
+                message = (
+                    f"Downloading video... {percent}% "
+                    f"({downloaded // (1024 * 1024)} of {total // (1024 * 1024)} MB)"
+                )
+            else:
+                # Unknown size: creep forward so the bar still shows activity.
+                percent = min(95, 2 + downloaded // (1024 * 1024))
+                message = f"Downloading video... {downloaded / (1024 * 1024):.1f} MB"
+            update_job_status(job_id, "downloading", message, percent)
+
+        def on_stage(message: str, percent: int) -> None:
+            """Streaming imports send their real stage (info, download %, merge...)."""
+            update_job_status(job_id, "downloading", message, percent)
+
+        result = download_from_link(
+            url,
+            job_dir,
+            filename_stem="input",
+            progress_cb=on_progress,
+            stage_cb=on_stage,
+        )
+        provider = result.provider
+
+        # Make sure it really is a video before spending minutes transcribing it.
+        update_job_status(job_id, "downloading", "Checking file...", 96)
+        probe_started = time.monotonic()
+        info = probe_video_file(result.path)
+        logger.info(f"[{job_id}] ffprobe check took {time.monotonic() - probe_started:.2f}s")
+
+        if info["duration"] > MAX_VIDEO_MINUTES * 60:
+            minutes = info["duration"] / 60.0
+            raise LinkError(
+                f"This video is {minutes:.1f} minutes long. The limit is "
+                f"{MAX_VIDEO_MINUTES} minutes, so please trim it and import again."
+            )
+
+        # Save what we learned, then hand the job to the normal pipeline.
+        data = load_job(job_id) or {}
+        data["file_size_bytes"] = result.size_bytes
+        data["duration_seconds"] = round(info["duration"], 2)
+        data["video_width"] = info["width"]
+        data["video_height"] = info["height"]
+        data["source"] = "link"
+        data["source_url"] = url
+        data["resolved_url"] = result.final_url
+        data["import_provider"] = provider
+        data["error"] = None
+        save_job(job_id, data)
+        update_job_status(job_id, "uploaded", "Download finished. Queued for processing...", 5)
+
+        logger.info(
+            f"[{job_id}] Link import ready: {result.path.name} "
+            f"({info['width']}x{info['height']}, {info['duration']:.1f}s, "
+            f"{info['codec']}, via {provider})"
+        )
+        enqueue_job(job_id)
+
+    except Exception as e:
+        # Leave nothing broken behind for the pipeline to pick up.
+        cleanup_partial_download(job_dir)
+        if isinstance(e, (LinkError, InvalidVideoError)):
+            message = str(e)
+        else:
+            message = friendly_link_error(e)
+        logger.error(f"[{job_id}] Import from link failed: {e}")
+        update_job_status(job_id, "error", "Import failed", 0, error=message)
+
+
+def _check_clip_duration(clip_path: Path, expected_seconds: float) -> float:
+    """Measures the real rendered clip length with ffprobe and logs expected vs actual."""
+    try:
+        actual = get_audio_duration_seconds(clip_path)
+    except Exception as e:
+        logger.warning(f"Could not measure {clip_path.name} with ffprobe: {e}")
+        return 0.0
+    logger.info(
+        f"Duration check [{clip_path.name}]: expected {expected_seconds:.2f}s, "
+        f"actual {actual:.2f}s, difference {actual - expected_seconds:+.2f}s"
+    )
+    return actual
+
+def _video_render_options(job_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Project-wide video style settings, with safe defaults."""
+    return {
+        "video_style": job_data.get("video_style", "smart_fit"),
+        "solid_color": job_data.get("solid_color", "#000000"),
+        "gradient_top": job_data.get("gradient_top", "#0F172A"),
+        "gradient_bottom": job_data.get("gradient_bottom", "#1E3A8A"),
+        "smart_aspect": job_data.get("smart_aspect", "4:5"),
+        "smart_zoom": bool(job_data.get("smart_zoom", False)),
+        "smart_background": job_data.get("smart_background", "blurred"),
+        "split_background": job_data.get("split_background", "random"),
+        "split_divider": bool(job_data.get("split_divider", True)),
+    }
+
+
+def _caption_style_for(font_style: Dict[str, Any], job_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    In Split screen the captions move up to the seam (about 53-58% of the
+    height), so they never sit on the speaker's face in the top block.
+    """
+    if job_data.get("video_style") == "split":
+        moved = dict(font_style)
+        moved["margin_v"] = SPLIT_CAPTION_MARGIN_V
+        return moved
+    return font_style
+
+
+def _hook_for_candidate(cand: Dict[str, Any], job_data: Dict[str, Any]) -> Tuple[Optional[str], int]:
+    """The hook is off by default; when on, the AI title is the pre-filled text."""
+    duration = max(1, min(6, int(job_data.get("hook_duration", 3))))
+    if not job_data.get("hook_enabled", False):
+        return None, duration
+    # An explicitly cleared hook box stays empty; otherwise use the AI title.
+    if "hook_title" in cand:
+        title = str(cand.get("hook_title") or "").strip()
+    else:
+        title = str(cand.get("title") or "").strip()
+    return (title or None), duration
+
+
 def render_single_candidate(
     job_id: str,
     clip_id: str,
     new_start: Optional[float] = None,
     new_end: Optional[float] = None,
-    new_crop_style: Optional[str] = None
+    new_crop_style: Optional[str] = None,
+    new_font_style: Optional[str] = None,
+    new_hook_title: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Renders or re-renders an individual clip candidate with timing metrics.
@@ -161,13 +372,31 @@ def render_single_candidate(
     if new_crop_style:
         job_data["crop_style"] = crop_style
 
+    # Caption font: a single-clip re-render can pick a new one, otherwise the
+    # project-wide choice saved in job.json is used.
+    font_style_key = new_font_style or job_data.get("font_style", DEFAULT_FONT_STYLE)
+    if new_font_style:
+        job_data["font_style"] = font_style_key
+    font_style = get_font_style(font_style_key)
+
+    # A per-clip hook title can be edited before re-rendering this clip.
+    if new_hook_title is not None:
+        target_cand["hook_title"] = str(new_hook_title).strip()
+
+    hook_title, hook_duration = _hook_for_candidate(target_cand, job_data)
+
     # Generate ASS subtitles for this clip
     ass_path = job_dir / f"{clip_id}.ass"
     generate_ass_subtitles_for_clip(
         transcript_segments=segments,
         clip_start=target_cand["start"],
         clip_end=target_cand["end"],
-        output_ass_path=ass_path
+        output_ass_path=ass_path,
+        font_style=_caption_style_for(font_style, job_data),
+        hook_title=hook_title,
+        hook_duration=hook_duration,
+        progress_bar=bool(job_data.get("progress_bar", False)),
+        progress_color=job_data.get("progress_color", "#38BDF8"),
     )
 
     # Render MP4
@@ -178,8 +407,13 @@ def render_single_candidate(
         end_time=target_cand["end"],
         output_mp4_path=output_mp4,
         subtitle_ass_path=ass_path,
-        crop_style=crop_style
+        crop_style=crop_style,
+        font_filename=font_style.get("filename"),
+        **_video_render_options(job_data),
     )
+
+    # Log expected vs real duration (ffprobe)
+    _check_clip_duration(output_mp4, target_cand["duration"])
 
     t_render = time.perf_counter() - t_start
     logger.info(f"[{job_id}] Re-rendering {clip_id} ({target_cand['duration']}s clip) completed in {t_render:.2f}s")
@@ -260,21 +494,38 @@ def process_single_job(job_id: str) -> None:
         update_job_status(job_id, "suggesting", "Finding the best clip moments...", 75)
         t_highlights_start = time.perf_counter()
         candidates = pick_highlights(transcript_data, audio_wav=audio_wav)
+
+        # Start each clip on the first spoken word and end it on the last one,
+        # with 0.2s lead-in and 0.3s tail so no word gets cut off.
+        segments = transcript_data.get("segments", [])
+        for cand in candidates:
+            cand["start"], cand["end"] = snap_to_word_boundaries(cand["start"], cand["end"], segments)
+            cand["duration"] = round(cand["end"] - cand["start"], 2)
+
         t_highlights = time.perf_counter() - t_highlights_start
         logger.info(f"[{job_id}] [STAGE 3/4] Highlight selection finished in {t_highlights:.2f}s ({len(candidates)} clips chosen)")
 
         # Step 6: Render each clip sequentially (with timing)
         job_data = load_job(job_id)
         crop_style = job_data.get("crop_style", DEFAULT_CROP_STYLE) if job_data else DEFAULT_CROP_STYLE
-        segments = transcript_data.get("segments", [])
+        font_style_key = job_data.get("font_style", DEFAULT_FONT_STYLE) if job_data else DEFAULT_FONT_STYLE
+        font_style = get_font_style(font_style_key)
+        video_options = _video_render_options(job_data) if job_data else _video_render_options({})
 
         t_render_start = time.perf_counter()
         total_cands = len(candidates)
         failed_count = 0
+
+        # Give every clip an id and "queued" status now, so the UI can show a card
+        # (with a rendering placeholder) for all of them before work starts.
         for idx, cand in enumerate(candidates, start=1):
-            clip_id = f"clip_{idx:02d}"
-            cand["id"] = clip_id
+            cand["id"] = f"clip_{idx:02d}"
             cand["index"] = idx
+            cand["render_status"] = "queued"
+        _save_candidates_progress(job_id, candidates)
+
+        for idx, cand in enumerate(candidates, start=1):
+            clip_id = cand["id"]
 
             # Clamp the clip to the real video length so FFmpeg never runs past the end
             if cand["end"] > video_duration_sec:
@@ -285,22 +536,33 @@ def process_single_job(job_id: str) -> None:
                 cand["render_error"] = "clip starts after the end of the video"
                 failed_count += 1
                 logger.error(f"[{job_id}] Clip {idx}/{total_cands} skipped: {cand['render_error']}")
+                _save_candidates_progress(job_id, candidates)
                 continue
 
             pct = int(80 + (idx / max(1, total_cands)) * 18)
             msg = f"Rendering clip {idx} of {total_cands} ({crop_style})..."
             update_job_status(job_id, "rendering", msg, pct)
+            cand["render_status"] = "rendering"
+            _save_candidates_progress(job_id, candidates)
 
             t_clip_start = time.perf_counter()
 
             try:
                 # Subtitles
                 ass_path = job_dir / f"{clip_id}.ass"
+                # Subtitles
+                ass_path = job_dir / f"{clip_id}.ass"
+                hook_title, hook_duration = _hook_for_candidate(cand, job_data) if job_data else (None, 3)
                 generate_ass_subtitles_for_clip(
                     transcript_segments=segments,
                     clip_start=cand["start"],
                     clip_end=cand["end"],
-                    output_ass_path=ass_path
+                    output_ass_path=ass_path,
+                    font_style=_caption_style_for(font_style, job_data or {}),
+                    hook_title=hook_title,
+                    hook_duration=hook_duration,
+                    progress_bar=bool(job_data.get("progress_bar", False)) if job_data else False,
+                    progress_color=job_data.get("progress_color", "#38BDF8") if job_data else "#38BDF8",
                 )
 
                 # MP4 render
@@ -311,7 +573,9 @@ def process_single_job(job_id: str) -> None:
                     end_time=cand["end"],
                     output_mp4_path=output_mp4,
                     subtitle_ass_path=ass_path,
-                    crop_style=crop_style
+                    crop_style=crop_style,
+                    font_filename=font_style.get("filename"),
+                    **video_options,
                 )
             except Exception as e:
                 # Mark just this clip as failed and carry on with the next one.
@@ -321,6 +585,7 @@ def process_single_job(job_id: str) -> None:
                 cand["render_error"] = reason
                 failed_count += 1
                 logger.error(f"[{job_id}] Clip {idx}/{total_cands} failed: {reason}")
+                _save_candidates_progress(job_id, candidates)
                 continue
 
             t_clip = time.perf_counter() - t_clip_start
@@ -330,6 +595,12 @@ def process_single_job(job_id: str) -> None:
             cand["render_status"] = "completed"
             cand["last_render_seconds"] = round(t_clip, 2)
             logger.info(f"[{job_id}] Rendered clip {idx}/{total_cands} ({cand['duration']}s) in {t_clip:.2f}s")
+
+            # Compare the real file duration with what we asked for (ffprobe)
+            _check_clip_duration(output_mp4, cand["duration"])
+
+            # Persist this clip so the results page can show it right away
+            _save_candidates_progress(job_id, candidates)
 
         succeeded_count = total_cands - failed_count
 

@@ -15,6 +15,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const errorMessageAlert = document.getElementById("errorMessageAlert");
   const errorMessageText = document.getElementById("errorMessageText");
 
+  // "Upload a file" vs "Import from link" tabs
+  const modeTabFile = document.getElementById("modeTabFile");
+  const modeTabLink = document.getElementById("modeTabLink");
+  const fileModePanel = document.getElementById("fileModePanel");
+  const linkModePanel = document.getElementById("linkModePanel");
+  const importUrlInput = document.getElementById("importUrlInput");
+  const importBtn = document.getElementById("importBtn");
+
   // Helper to show error banner
   function showError(msg) {
     errorMessageText.textContent = msg;
@@ -26,6 +34,25 @@ document.addEventListener("DOMContentLoaded", () => {
     errorMessageAlert.style.display = "none";
     errorMessageText.textContent = "";
   }
+
+  // Switch between the two ways of adding a video
+  function setMode(mode) {
+    const isFile = mode === "file";
+    modeTabFile.classList.toggle("active", isFile);
+    modeTabLink.classList.toggle("active", !isFile);
+    modeTabFile.setAttribute("aria-selected", isFile ? "true" : "false");
+    modeTabLink.setAttribute("aria-selected", isFile ? "false" : "true");
+    fileModePanel.style.display = isFile ? "block" : "none";
+    linkModePanel.style.display = isFile ? "none" : "block";
+    uploadProgressBox.style.display = "none";
+    hideError();
+    if (!isFile) {
+      importUrlInput.focus();
+    }
+  }
+
+  modeTabFile.addEventListener("click", () => setMode("file"));
+  modeTabLink.addEventListener("click", () => setMode("link"));
 
   // Handle file input change
   videoFileInput.addEventListener("change", () => {
@@ -132,5 +159,60 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     xhr.send(formData);
+  });
+
+  // Import from a direct video link, or a public Google Drive / Dropbox share link.
+  // The server validates the link first, then downloads it in the background.
+  async function startLinkImport() {
+    hideError();
+
+    const url = (importUrlInput.value || "").trim();
+    if (!url) {
+      showError("Please paste a link first.");
+      importUrlInput.focus();
+      return;
+    }
+
+    const cropStyleSelect = document.getElementById("cropStyleSelect");
+    const cropStyle = cropStyleSelect ? cropStyleSelect.value : "blurred_background";
+
+    importBtn.disabled = true;
+    importBtn.textContent = "⏳ Starting download...";
+
+    try {
+      const resp = await fetch("/api/import-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url, crop_style: cropStyle })
+      });
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        // The server sends a friendly explanation, for example for streaming sites.
+        showError(data.detail || "That link could not be imported.");
+        return;
+      }
+
+      // Download runs in the background - the studio page shows its progress.
+      uploadProgressBox.style.display = "block";
+      uploadProgressBar.style.width = "2%";
+      uploadStatusText.textContent = "Link accepted. Starting the download...";
+      window.location.href = `/jobs/${data.job_id}/view`;
+    } catch (err) {
+      showError("Could not reach the server. Make sure it is still running, then try again.");
+    } finally {
+      importBtn.disabled = false;
+      importBtn.textContent = "Import from link";
+    }
+  }
+
+  importBtn.addEventListener("click", startLinkImport);
+
+  // Pressing Enter in the link box starts the import
+  importUrlInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      startLinkImport();
+    }
   });
 });

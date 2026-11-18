@@ -58,7 +58,7 @@ def test_generate_ass_subtitles(tmp_path):
     content = ass_file.read_text(encoding="utf-8")
     assert "PlayResX: 1080" in content
     assert "PlayResY: 1920" in content
-    assert ",90,90,260,1" in content
+    assert ",90,90,500,1" in content
     assert "Dialogue: 0,0:00:00.00" in content
     assert "Welcome to Cliptor" in content
 

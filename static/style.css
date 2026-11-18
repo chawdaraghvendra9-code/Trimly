@@ -110,6 +110,101 @@ body {
   margin-bottom: 20px;
 }
 
+/* Layout style chooser and the two "add video" modes */
+.crop-style-box {
+  margin-bottom: 20px;
+  background: rgba(15, 23, 42, 0.4);
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+}
+
+.crop-style-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+.crop-style-select {
+  background: #0f172a;
+  border: 1px solid #475569;
+  color: var(--text-main);
+  padding: 8px 12px;
+  border-radius: 6px;
+  width: 100%;
+  font-size: 0.95rem;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.mode-tab {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-tab:hover {
+  border-color: var(--primary-color);
+  color: var(--text-main);
+}
+
+.mode-tab.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #ffffff;
+}
+
+/* Import from link */
+.import-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.url-input {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 10px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: var(--text-main);
+  font-size: 0.95rem;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.field-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.import-note {
+  margin-top: 14px;
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
 .drop-zone {
   position: relative;
   border: 2px dashed #475569;

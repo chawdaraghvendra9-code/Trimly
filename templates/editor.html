@@ -309,6 +309,236 @@
       border-radius: 4px;
       white-space: nowrap;
     }
+
+    /* ===== Results grid: one card per clip, each with its own player ===== */
+    .clips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .clip-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .clip-player-wrap {
+      background: #000;
+    }
+    .clip-video {
+      width: 100%;
+      height: 360px;
+      object-fit: contain;
+      background: #000;
+      display: none;
+    }
+    .player-placeholder {
+      height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .clip-card-body {
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .clip-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .clip-card-meta {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+    }
+    .clip-transcript summary {
+      cursor: pointer;
+      color: #38bdf8;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .clip-transcript p {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .clip-card .trim-row {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    /* Caption font picker */
+    {% for style in font_styles %}{% if style.filename %}
+    @font-face {
+      font-family: "{{ style.css_family }}";
+      src: url("/fonts/{{ style.filename }}") format("truetype");
+      font-display: swap;
+    }
+    {% endif %}{% endfor %}
+
+    .font-picker-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 16px;
+    }
+    .font-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .font-picker-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .font-select {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      min-width: 240px;
+    }
+    .font-sample {
+      margin-top: 10px;
+      font-size: 1.15rem;
+      color: #f8fafc;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 2px 0 #000;
+    }
+    .font-picker-note {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* Video style / hook / progress controls */
+    .video-style-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 12px;
+    }
+    .video-style-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .video-style-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      min-width: 96px;
+    }
+    .swatch-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: 2px solid #475569;
+      cursor: pointer;
+      padding: 0;
+    }
+    .swatch:hover {
+      border-color: #38bdf8;
+    }
+    .style-color-input {
+      width: 40px;
+      height: 30px;
+      padding: 0;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      background: #0f172a;
+      cursor: pointer;
+    }
+    .mini-number {
+      width: 62px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 6px 8px;
+      border-radius: 6px;
+    }
+    .mini-select {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    .bg-upload-input {
+      max-width: 210px;
+      color: #cbd5e1;
+      font-size: 0.78rem;
+    }
+    .btn-small {
+      background: #1d4ed8;
+      border: none;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-small:hover {
+      background: #2563eb;
+    }
+    .check-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+    .hook-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .hook-input {
+      flex: 1;
+      min-width: 0;
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    .is-hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -393,49 +623,143 @@
         </div>
       </div>
 
-      <div class="editor-layout">
-        <!-- Left Column: Real 9:16 Vertical Preview Player -->
-        <div class="player-card">
-          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">Vertical 9:16 Preview</h3>
-          <p class="active-clip-info" id="activeClipTitle">Playing: Ready to select</p>
+      <!-- Caption font for the whole project -->
+      <div class="font-picker-card">
+        <div class="font-picker-row">
+          <label class="font-picker-label" for="fontStyleSelect">🔤 Caption font</label>
+          <select id="fontStyleSelect" class="font-select" onchange="changeFontStyle()">
+            {% for style in font_styles %}
+            <option value="{{ style.key }}"
+                    style="font-family: {% if style.filename %}'{{ style.css_family }}'{% else %}Arial{% endif %};"
+                    {% if style.key == current_font_style %}selected{% endif %}>{{ style.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <p class="font-sample" id="fontSample">Sample: THIS IS HOW YOUR CAPTIONS LOOK</p>
+        <p class="font-picker-note">Saved for this project. Re-render a clip to apply it to an existing video.</p>
+      </div>
 
-          <div class="vertical-phone-frame">
-            <video id="verticalPlayer" class="vertical-video-player" controls preload="auto" playsinline>
-              <source id="verticalPlayerSource" src="" type="video/mp4">
-              Your browser does not support HTML5 video.
-            </video>
-          </div>
-
-          <div id="playerNotice" style="font-size: 0.8rem; color: #94a3b8;">
-            Plays the real rendered 1080x1920 MP4 file with burned-in captions.
-          </div>
+      <!-- Video style, hook title and progress bar for the whole project -->
+      <div class="video-style-card">
+        <div class="video-style-row">
+          <label class="video-style-label" for="videoStyleSelect">🎬 Video style</label>
+          <select id="videoStyleSelect" class="font-select" onchange="changeVideoStyle()">
+            <option value="smart_fit" {% if video_settings.video_style == 'smart_fit' %}selected{% endif %}>Smart fit (tall crop, rounded)</option>
+            <option value="split" {% if video_settings.video_style == 'split' %}selected{% endif %}>Split screen (clip + background)</option>
+            <option value="blurred" {% if video_settings.video_style == 'blurred' %}selected{% endif %}>Blurred</option>
+            <option value="solid" {% if video_settings.video_style == 'solid' %}selected{% endif %}>Solid color</option>
+            <option value="gradient" {% if video_settings.video_style == 'gradient' %}selected{% endif %}>Gradient</option>
+          </select>
         </div>
 
-        <!-- Right Column: Tabs (Clips & Transcript) -->
-        <div class="candidates-panel">
-          <div class="tab-header">
-            <button class="tab-btn active" id="tabCandidatesBtn" onclick="switchTab('candidates')">
-              Rendered Clips (<span id="candidateCountLabel">0</span>)
-            </button>
-            <button class="tab-btn" id="tabTranscriptBtn" onclick="switchTab('transcript')">
-              Full Transcript
-            </button>
-          </div>
+        <div id="smartControls" class="video-style-row {% if video_settings.video_style != 'smart_fit' %}is-hidden{% endif %}">
+          <span class="video-style-label">Crop shape</span>
+          <select id="smartAspect" class="mini-select" onchange="changeVideoStyle()">
+            <option value="4:5" {% if video_settings.smart_aspect == '4:5' %}selected{% endif %}>4:5</option>
+            <option value="1:1" {% if video_settings.smart_aspect == '1:1' %}selected{% endif %}>1:1</option>
+            <option value="3:4" {% if video_settings.smart_aspect == '3:4' %}selected{% endif %}>3:4</option>
+          </select>
+          <label class="check-label">
+            <input type="checkbox" id="smartZoom" {% if video_settings.smart_zoom %}checked{% endif %} onchange="changeVideoStyle()">
+            Slow punch-in
+          </label>
+          <span class="video-style-label" style="min-width:0;">Background</span>
+          <select id="smartBackground" class="mini-select" onchange="changeVideoStyle()">
+            <option value="blurred" {% if video_settings.smart_background == 'blurred' %}selected{% endif %}>Blurred</option>
+            <option value="solid" {% if video_settings.smart_background == 'solid' %}selected{% endif %}>Solid color</option>
+            <option value="gradient" {% if video_settings.smart_background == 'gradient' %}selected{% endif %}>Gradient</option>
+          </select>
+        </div>
 
-          <!-- Tab Content: Clip Candidates -->
-          <div id="candidatesTabContent">
-            <div id="candidatesList">
-              <p style="color: var(--text-muted); font-style: italic;">
-                Processing video, selecting highlights, and rendering 9:16 clips with captions...
-              </p>
-            </div>
-          </div>
+        <div id="splitControls" class="video-style-row {% if video_settings.video_style != 'split' %}is-hidden{% endif %}">
+          <span class="video-style-label">Background</span>
+          <select id="splitBackground" class="mini-select" onchange="changeVideoStyle()">
+            <option value="random" {% if video_settings.split_background == 'random' %}selected{% endif %}>Random</option>
+            <option value="none" {% if video_settings.split_background == 'none' %}selected{% endif %}>No clip (dark)</option>
+            {% for bg in backgrounds %}
+            <option value="{{ bg.name }}" {% if video_settings.split_background == bg.name %}selected{% endif %}>{{ bg.name }}</option>
+            {% endfor %}
+          </select>
+          <input type="file" id="splitUpload" class="bg-upload-input" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime">
+          <button type="button" class="btn-small" onclick="uploadBackground()">Upload</button>
+          <label class="check-label">
+            <input type="checkbox" id="splitDivider" {% if video_settings.split_divider %}checked{% endif %} onchange="changeVideoStyle()">
+            Seam line
+          </label>
+        </div>
+        <p id="splitNote" class="font-picker-note {% if video_settings.video_style != 'split' %}is-hidden{% endif %}" style="margin-top:0;">
+          Only use background footage you own or that has a licence allowing reuse.
+        </p>
 
-          <!-- Tab Content: Transcript -->
-          <div id="transcriptTabContent" style="display: none;">
-            <div id="transcriptBox" class="transcript-scroll">
-              <p style="color: var(--text-muted); font-style: italic;">Loading transcript...</p>
-            </div>
+        <div id="solidControls" class="video-style-row {% if video_settings.video_style != 'solid' %}is-hidden{% endif %}">
+          <span class="video-style-label">Solid color</span>
+          <div class="swatch-row">
+            <button type="button" class="swatch" title="Black" style="background:#000000" onclick="setSolidColor('#000000')"></button>
+            <button type="button" class="swatch" title="White" style="background:#FFFFFF" onclick="setSolidColor('#FFFFFF')"></button>
+            <button type="button" class="swatch" title="Navy" style="background:#0F172A" onclick="setSolidColor('#0F172A')"></button>
+            <button type="button" class="swatch" title="Blue" style="background:#1D4ED8" onclick="setSolidColor('#1D4ED8')"></button>
+            <button type="button" class="swatch" title="Red" style="background:#DC2626" onclick="setSolidColor('#DC2626')"></button>
+            <button type="button" class="swatch" title="Green" style="background:#16A34A" onclick="setSolidColor('#16A34A')"></button>
+          </div>
+          <input type="color" id="solidColor" class="style-color-input" value="{{ video_settings.solid_color }}" onchange="changeVideoStyle()">
+        </div>
+
+        <div id="gradientControls" class="video-style-row {% if video_settings.video_style != 'gradient' %}is-hidden{% endif %}">
+          <span class="video-style-label">Gradient</span>
+          <div class="swatch-row">
+            <button type="button" class="swatch" title="Midnight" style="background:linear-gradient(#0F172A,#1E3A8A)" onclick="setGradient('#0F172A','#1E3A8A')"></button>
+            <button type="button" class="swatch" title="Sunset" style="background:linear-gradient(#F97316,#7C2D12)" onclick="setGradient('#F97316','#7C2D12')"></button>
+            <button type="button" class="swatch" title="Purple" style="background:linear-gradient(#6D28D9,#1E1B4B)" onclick="setGradient('#6D28D9','#1E1B4B')"></button>
+            <button type="button" class="swatch" title="Ocean" style="background:linear-gradient(#06B6D4,#0F172A)" onclick="setGradient('#06B6D4','#0F172A')"></button>
+            <button type="button" class="swatch" title="Slate" style="background:linear-gradient(#111827,#374151)" onclick="setGradient('#111827','#374151')"></button>
+          </div>
+          <input type="color" id="gradientTop" class="style-color-input" value="{{ video_settings.gradient_top }}" onchange="changeVideoStyle()">
+          <input type="color" id="gradientBottom" class="style-color-input" value="{{ video_settings.gradient_bottom }}" onchange="changeVideoStyle()">
+        </div>
+
+        <div class="video-style-row">
+          <label class="check-label">
+            <input type="checkbox" id="hookEnabled" {% if video_settings.hook_enabled %}checked{% endif %} onchange="changeVideoStyle()">
+            Hook title
+          </label>
+          <label class="check-label" for="hookDuration">seconds</label>
+          <input type="number" id="hookDuration" class="mini-number" min="1" max="6" step="1"
+                 value="{{ video_settings.hook_duration }}" onchange="changeVideoStyle()">
+          <span class="font-picker-note" style="margin:0;">Edit the text on each clip below.</span>
+        </div>
+
+        <div class="video-style-row" style="margin-bottom:0;">
+          <label class="check-label">
+            <input type="checkbox" id="progressBar" {% if video_settings.progress_bar %}checked{% endif %} onchange="changeVideoStyle()">
+            Progress bar
+          </label>
+          <input type="color" id="progressColor" class="style-color-input" value="{{ video_settings.progress_color }}" onchange="changeVideoStyle()">
+        </div>
+      </div>
+
+      <!-- Results: one card per clip, each card has its own rendered-clip player -->
+      <div class="candidates-panel" style="margin-top: 20px;">
+        <div class="tab-header">
+          <button class="tab-btn active" id="tabCandidatesBtn" onclick="switchTab('candidates')">
+            Clips (<span id="candidateCountLabel">0</span>)
+          </button>
+          <button class="tab-btn" id="tabTranscriptBtn" onclick="switchTab('transcript')">
+            Full Transcript
+          </button>
+        </div>
+
+        <!-- Tab Content: Clip Cards -->
+        <div id="candidatesTabContent">
+          <p id="clipsEmpty" style="color: var(--text-muted); font-style: italic;">
+            Processing video, selecting highlights, and rendering 9:16 clips with captions...
+          </p>
+          <div id="clipsGrid" class="clips-grid"></div>
+        </div>
+
+        <!-- Tab Content: Transcript -->
+        <div id="transcriptTabContent" style="display: none;">
+          <div id="transcriptBox" class="transcript-scroll">
+            <p style="color: var(--text-muted); font-style: italic;">Loading transcript...</p>
           </div>
         </div>
       </div>
@@ -448,9 +772,6 @@
 
   <script>
     const JOB_ID = "{{ job.job_id }}";
-    const verticalPlayer = document.getElementById("verticalPlayer");
-    const verticalPlayerSource = document.getElementById("verticalPlayerSource");
-    const activeClipTitle = document.getElementById("activeClipTitle");
     const jobStatusBadge = document.getElementById("jobStatusBadge");
     const processingBox = document.getElementById("processingBox");
     const jobProgressBar = document.getElementById("jobProgressBar");
@@ -459,11 +780,10 @@
     const errorMessage = document.getElementById("errorMessage");
     const btnDownloadAll = document.getElementById("btnDownloadAll");
 
-    const candidatesList = document.getElementById("candidatesList");
+    const clipsGrid = document.getElementById("clipsGrid");
+    const clipsEmpty = document.getElementById("clipsEmpty");
     const candidateCountLabel = document.getElementById("candidateCountLabel");
     const transcriptBox = document.getElementById("transcriptBox");
-
-    let currentCandidates = [];
 
     // Tab switching
     function switchTab(tab) {
@@ -491,17 +811,6 @@
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 
-    // Play rendered clip in the vertical player
-    function playRenderedClip(clipUrl, title, cardElement) {
-      document.querySelectorAll(".candidate-card").forEach(c => c.classList.remove("active-preview"));
-      if (cardElement) cardElement.classList.add("active-preview");
-
-      activeClipTitle.textContent = `Playing: ${title}`;
-      verticalPlayerSource.src = clipUrl;
-      verticalPlayer.load();
-      verticalPlayer.play().catch(e => console.log("Autoplay was prevented:", e));
-    }
-
     // Nudge trim helper
     function nudgeTime(inputId, delta) {
       const input = document.getElementById(inputId);
@@ -511,6 +820,340 @@
         input.value = val;
       }
     }
+
+    // Add a cache-busting query so the browser never reuses the old clip file
+    function withCacheBust(url) {
+      const sep = url.includes("?") ? "&" : "?";
+      return `${url}${sep}v=${Date.now()}`;
+    }
+
+    function escapeAttr(text) {
+      return String(text == null ? "" : text)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    // Build one card (once). Values/status are filled in by syncCardState.
+    function buildCard(cand, idx, cropStyle) {
+      const clipId = cand.id;
+      const nudgeBtn = (field, delta) =>
+        `<button type="button" class="btn-nudge" onclick="nudgeTime('${field}_${clipId}', ${delta})">${delta > 0 ? "+" : ""}${delta}s</button>`;
+
+      const card = document.createElement("div");
+      card.className = "clip-card";
+      card.id = `card_${clipId}`;
+      card.innerHTML = `
+        <div class="clip-player-wrap">
+          <video class="clip-video" id="video_${clipId}" controls preload="metadata" playsinline></video>
+          <div class="player-placeholder" id="placeholder_${clipId}">⏳ Rendering…</div>
+        </div>
+        <div class="clip-card-body">
+          <div class="clip-card-title" id="title_${clipId}"></div>
+          <div class="clip-card-meta" id="meta_${clipId}"></div>
+          <div class="failed-note" id="failed_${clipId}" style="display: none;"></div>
+
+          <div class="trim-box">
+            <div class="trim-row">
+              <span class="trim-label">Start</span>
+              <div class="nudge-group">
+                ${nudgeBtn("start", -1)}${nudgeBtn("start", -0.5)}
+                <input type="number" step="0.1" id="start_${clipId}" class="nudge-input" value="${cand.start}">
+                ${nudgeBtn("start", 0.5)}${nudgeBtn("start", 1)}
+              </div>
+            </div>
+            <div class="trim-row">
+              <span class="trim-label">End</span>
+              <div class="nudge-group">
+                ${nudgeBtn("end", -1)}${nudgeBtn("end", -0.5)}
+                <input type="number" step="0.1" id="end_${clipId}" class="nudge-input" value="${cand.end}">
+                ${nudgeBtn("end", 0.5)}${nudgeBtn("end", 1)}
+              </div>
+            </div>
+            <div class="hook-row">
+              <span class="trim-label">Hook</span>
+              <input type="text" id="hook_${clipId}" class="hook-input" maxlength="90"
+                     value="${escapeAttr(cand.hook_title || cand.title || '')}"
+                     placeholder="Optional headline shown at the top">
+            </div>
+            <div class="style-row">
+              <span>Layout Style:</span>
+              <select id="style_${clipId}" class="style-select">
+                <option value="blurred_background" selected>Blurred Background</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button class="btn btn-rerender btn-sm" id="btnRender_${clipId}" onclick="triggerReRender('${clipId}')">
+              🔄 Re-render this clip
+            </button>
+            <a id="download_${clipId}" class="btn btn-download btn-sm" style="display: none;" download>📥 Download MP4</a>
+          </div>
+
+          <details class="clip-transcript">
+            <summary>Transcript</summary>
+            <p id="text_${clipId}"></p>
+          </details>
+        </div>
+      `;
+      return card;
+    }
+
+    // Fill/refresh a card from candidate data. Safe to call on every poll:
+    // it never reloads a video that is already showing the right file.
+    function syncCardState(cand, idx) {
+      const clipId = cand.id;
+      const status = cand.render_status || (cand.rendered_file ? "completed" : "queued");
+
+      const title = document.getElementById(`title_${clipId}`);
+      if (title) title.textContent = `${idx + 1}. ${cand.title}`;
+
+      const meta = document.getElementById(`meta_${clipId}`);
+      if (meta) {
+        meta.textContent = `⏱ ${formatTime(cand.start)} - ${formatTime(cand.end)} in original • ${Math.round(cand.duration)}s long`;
+      }
+
+      const textEl = document.getElementById(`text_${clipId}`);
+      if (textEl) textEl.textContent = cand.text || "(no transcript text)";
+
+      const failed = document.getElementById(`failed_${clipId}`);
+      const video = document.getElementById(`video_${clipId}`);
+      const placeholder = document.getElementById(`placeholder_${clipId}`);
+      const download = document.getElementById(`download_${clipId}`);
+      const renderBtn = document.getElementById(`btnRender_${clipId}`);
+
+      if (failed) {
+        failed.style.display = status === "failed" ? "block" : "none";
+        failed.textContent = `❌ Failed: ${cand.render_error || "render error"}`;
+      }
+
+      if (status === "completed" && cand.rendered_file) {
+        const url = cand.rendered_url || `/api/jobs/${JOB_ID}/clips/${cand.rendered_file}`;
+        if (video && video.getAttribute("src") !== url) {
+          video.src = url;
+          video.load();
+        }
+        if (video) video.style.display = "block";
+        if (placeholder) placeholder.style.display = "none";
+        if (download) {
+          download.href = `/api/jobs/${JOB_ID}/clips/${cand.rendered_file}/download`;
+          download.style.display = "inline-flex";
+        }
+      } else {
+        if (video) video.style.display = "none";
+        if (placeholder) {
+          placeholder.style.display = "flex";
+          placeholder.textContent = status === "failed" ? "❌ Rendering failed" : "⏳ Rendering…";
+        }
+        if (download) download.style.display = "none";
+      }
+
+      // Do not allow a second render while this clip is queued/rendering
+      if (renderBtn) renderBtn.disabled = (status === "queued" || status === "rendering");
+    }
+
+    // Create cards as needed and refresh their state (used by polling and reloads)
+    function syncCards(candidates, cropStyle) {
+      if (!candidates || candidates.length === 0) return;
+
+      if (clipsEmpty) clipsEmpty.style.display = "none";
+      candidateCountLabel.textContent = candidates.length;
+
+      candidates.forEach((cand, idx) => {
+        if (!cand.id) cand.id = `clip_${(idx + 1).toString().padStart(2, "0")}`;
+        let card = document.getElementById(`card_${cand.id}`);
+        if (!card) {
+          card = buildCard(cand, idx, cropStyle);
+          clipsGrid.appendChild(card);
+        }
+        syncCardState(cand, idx);
+      });
+    }
+
+    // Refresh ONLY one card's player after a re-render (with cache-busting)
+    function refreshCardAfterRender(clipId, cand) {
+      const startInput = document.getElementById(`start_${clipId}`);
+      const endInput = document.getElementById(`end_${clipId}`);
+      if (startInput) startInput.value = cand.start;
+      if (endInput) endInput.value = cand.end;
+
+      const hookInput = document.getElementById(`hook_${clipId}`);
+      if (hookInput && cand.hook_title != null) hookInput.value = cand.hook_title;
+
+      const meta = document.getElementById(`meta_${clipId}`);
+      if (meta) {
+        meta.innerHTML = `⏱ ${formatTime(cand.start)} - ${formatTime(cand.end)} in original • ${Math.round(cand.duration)}s long <span style="color:#38bdf8;">⚡ re-rendered in ${cand.last_render_seconds}s</span>`;
+      }
+
+      const video = document.getElementById(`video_${clipId}`);
+      if (video) {
+        video.src = withCacheBust(cand.rendered_url);
+        video.load();
+        video.play().catch(() => {});
+        video.style.display = "block";
+      }
+
+      const placeholder = document.getElementById(`placeholder_${clipId}`);
+      if (placeholder) placeholder.style.display = "none";
+
+      const failed = document.getElementById(`failed_${clipId}`);
+      if (failed) failed.style.display = "none";
+
+      const download = document.getElementById(`download_${clipId}`);
+      if (download && cand.rendered_file) {
+        download.href = `/api/jobs/${JOB_ID}/clips/${cand.rendered_file}/download`;
+        download.style.display = "inline-flex";
+      }
+    }
+
+    // Caption font picker: each option is drawn in its own font.
+    const fontStyleSelect = document.getElementById("fontStyleSelect");
+    const fontSample = document.getElementById("fontSample");
+
+    function applyFontSample() {
+      if (!fontStyleSelect || !fontSample) return;
+      const option = fontStyleSelect.options[fontStyleSelect.selectedIndex];
+      fontSample.style.fontFamily = option ? option.style.fontFamily : "Arial";
+    }
+
+    async function changeFontStyle() {
+      applyFontSample();
+      if (!fontStyleSelect) return;
+
+      try {
+        const resp = await fetch(`/api/jobs/${JOB_ID}/font-style`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ font_style: fontStyleSelect.value })
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert(`Could not save the font: ${err.detail || "Server error"}`);
+        }
+      } catch (e) {
+        console.error("Font save error:", e);
+      }
+    }
+
+    applyFontSample();
+
+    // Video style, hook and progress bar (saved for the whole project).
+    const videoStyleSelect = document.getElementById("videoStyleSelect");
+    const smartControls = document.getElementById("smartControls");
+    const smartAspectInput = document.getElementById("smartAspect");
+    const smartZoomInput = document.getElementById("smartZoom");
+    const smartBackgroundInput = document.getElementById("smartBackground");
+    const splitControls = document.getElementById("splitControls");
+    const splitNote = document.getElementById("splitNote");
+    const splitBackgroundSelect = document.getElementById("splitBackground");
+    const splitDividerInput = document.getElementById("splitDivider");
+    const solidControls = document.getElementById("solidControls");
+    const gradientControls = document.getElementById("gradientControls");
+    const solidColorInput = document.getElementById("solidColor");
+    const gradientTopInput = document.getElementById("gradientTop");
+    const gradientBottomInput = document.getElementById("gradientBottom");
+    const hookEnabledInput = document.getElementById("hookEnabled");
+    const hookDurationInput = document.getElementById("hookDuration");
+    const progressBarInput = document.getElementById("progressBar");
+    const progressColorInput = document.getElementById("progressColor");
+
+    function toggleVideoStyleControls() {
+      if (!videoStyleSelect) return;
+      const style = videoStyleSelect.value;
+      if (smartControls) smartControls.classList.toggle("is-hidden", style !== "smart_fit");
+      if (solidControls) solidControls.classList.toggle("is-hidden", style !== "solid");
+      if (gradientControls) gradientControls.classList.toggle("is-hidden", style !== "gradient");
+      if (splitControls) splitControls.classList.toggle("is-hidden", style !== "split");
+      if (splitNote) splitNote.classList.toggle("is-hidden", style !== "split");
+    }
+
+    async function saveVideoSettings() {
+      if (!videoStyleSelect) return;
+
+      const payload = {
+        video_style: videoStyleSelect.value,
+        solid_color: solidColorInput?.value,
+        gradient_top: gradientTopInput?.value,
+        gradient_bottom: gradientBottomInput?.value,
+        progress_bar: !!progressBarInput?.checked,
+        progress_color: progressColorInput?.value,
+        hook_enabled: !!hookEnabledInput?.checked,
+        hook_duration: parseInt(hookDurationInput?.value || "3", 10),
+        smart_aspect: smartAspectInput?.value,
+        smart_zoom: !!smartZoomInput?.checked,
+        smart_background: smartBackgroundInput?.value,
+        split_background: splitBackgroundSelect?.value,
+        split_divider: !!splitDividerInput?.checked
+      };
+
+      try {
+        const resp = await fetch(`/api/jobs/${JOB_ID}/video-style`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          alert(`Could not save video style: ${err.detail || "Server error"}`);
+        }
+      } catch (e) {
+        console.error("Video style save error:", e);
+      }
+    }
+
+    function changeVideoStyle() {
+      toggleVideoStyleControls();
+      saveVideoSettings();
+    }
+
+    function setSolidColor(color) {
+      if (solidColorInput) solidColorInput.value = color;
+      changeVideoStyle();
+    }
+
+    function setGradient(top, bottom) {
+      if (gradientTopInput) gradientTopInput.value = top;
+      if (gradientBottomInput) gradientBottomInput.value = bottom;
+      changeVideoStyle();
+    }
+
+    // Split screen: add the user's own background clip (checked on the server).
+    async function uploadBackground() {
+      const picker = document.getElementById("splitUpload");
+      if (!picker || !picker.files || !picker.files.length) {
+        alert("Pick a background clip first (.mp4, .webm or .mov).");
+        return;
+      }
+
+      const form = new FormData();
+      form.append("file", picker.files[0]);
+
+      try {
+        const resp = await fetch("/api/backgrounds/upload", { method: "POST", body: form });
+        const body = await resp.json();
+        if (!resp.ok) {
+          alert(`Could not add that background: ${body.detail || "Server error"}`);
+          return;
+        }
+
+        if (splitBackgroundSelect) {
+          splitBackgroundSelect.innerHTML = "";
+          splitBackgroundSelect.add(new Option("Random", "random"));
+          splitBackgroundSelect.add(new Option("No clip (dark)", "none"));
+          (body.backgrounds || []).forEach(bg => splitBackgroundSelect.add(new Option(bg.name, bg.name)));
+          splitBackgroundSelect.value = body.name;
+        }
+        picker.value = "";
+        changeVideoStyle();
+      } catch (e) {
+        console.error("Background upload error:", e);
+        alert("The background clip could not be uploaded.");
+      }
+    }
+
+    toggleVideoStyleControls();
 
     // Re-render single clip on trim
     async function triggerReRender(clipId) {
@@ -538,7 +1181,9 @@
           body: JSON.stringify({
             start: newStart,
             end: newEnd,
-            crop_style: newStyle
+            crop_style: newStyle,
+            font_style: document.getElementById("fontStyleSelect")?.value,
+            hook_title: document.getElementById(`hook_${clipId}`)?.value ?? null
           })
         });
 
@@ -549,125 +1194,14 @@
         }
 
         const data = await resp.json();
-        const updatedCand = data.candidate;
-
-        // Auto-play the freshly re-rendered clip
-        const cardElem = document.getElementById(`card_${clipId}`);
-        playRenderedClip(updatedCand.rendered_url, updatedCand.title, cardElem);
-
-        // Update card info
-        const durLabel = document.getElementById(`dur_${clipId}`);
-        if (durLabel) {
-          durLabel.innerHTML = `⏱️ ${formatTime(updatedCand.start)} - ${formatTime(updatedCand.end)} (${Math.round(updatedCand.duration)}s) <span style="font-size: 0.8rem; color: #38bdf8; margin-left: 8px;">⚡ Re-rendered in ${updatedCand.last_render_seconds}s</span>`;
-        }
+        refreshCardAfterRender(clipId, data.candidate);
 
       } catch (e) {
         console.error("Re-render error:", e);
         alert(`Network error during re-render: ${e.message}`);
       } finally {
         renderBtn.disabled = false;
-        renderBtn.textContent = "🔄 Re-render Clip";
-      }
-    }
-
-    // Render candidate cards in UI
-    function renderCandidates(candidates, jobCropStyle) {
-      currentCandidates = candidates || [];
-      if (currentCandidates.length === 0) {
-        candidatesList.innerHTML = "<p style='color: var(--text-muted);'>No clips ready yet.</p>";
-        candidateCountLabel.textContent = "0";
-        return;
-      }
-
-      candidateCountLabel.textContent = currentCandidates.length;
-      candidatesList.innerHTML = "";
-
-      currentCandidates.forEach((cand, idx) => {
-        const clipId = cand.id || `clip_${(idx + 1).toString().padStart(2, '0')}`;
-        const sourceLabel = cand.is_basic ? "Basic Suggestion" : "AI Highlight";
-        const typeLabel = (cand.type || "HIGHLIGHT").toUpperCase();
-        const completenessNote = cand.completeness_note ? `🎯 <strong>Completeness:</strong> ${cand.completeness_note}` : "";
-        const failedNote = cand.render_status === "failed"
-          ? `<div class="failed-note">❌ Failed: ${cand.render_error || "render error"}</div>`
-          : "";
-        // Only offer Play / Download when there is actually a rendered file
-        const playButton = cand.rendered_file
-          ? `<button class="btn btn-primary btn-sm btn-play" onclick="playRenderedClip('${cand.rendered_url}', '${cand.title.replace(/'/g, "\\'")}', document.getElementById('card_${clipId}'))">
-                ▶ Play Rendered Clip
-              </button>`
-          : "";
-        const downloadLink = cand.rendered_file
-          ? `<a href="/api/jobs/${JOB_ID}/clips/${cand.rendered_file}/download" class="btn btn-download btn-sm" download>
-                📥 Download MP4
-              </a>`
-          : "";
-
-        const card = document.createElement("div");
-        card.className = "candidate-card";
-        card.id = `card_${clipId}`;
-
-        card.innerHTML = `
-          <div class="card-top-row">
-            <span class="card-title">${idx + 1}. ${cand.title}</span>
-            <div class="badge-group">
-              <span class="score-badge">⭐ ${cand.score}/10</span>
-              <span class="source-tag">${typeLabel}</span>
-              <span class="source-tag ${cand.is_basic ? 'basic' : ''}">${sourceLabel}</span>
-            </div>
-          </div>
-          <div class="time-tag" id="dur_${clipId}">
-            ⏱️ ${formatTime(cand.start)} - ${formatTime(cand.end)} (${Math.round(cand.duration)}s)
-            ${cand.last_render_seconds ? `<span style="font-size: 0.8rem; color: #38bdf8; margin-left: 8px;">⚡ Rendered in ${cand.last_render_seconds}s</span>` : ''}
-          </div>
-          <div class="reason-text">💡 ${cand.reason}</div>
-          ${completenessNote ? `<div class="completeness-note">${completenessNote}</div>` : ""}
-          ${failedNote}
-          <div class="clip-quote">"${cand.text}"</div>
-
-          <!-- Trim & Crop Style Controls -->
-          <div class="trim-box">
-            <div class="trim-row">
-              <span class="trim-label">Start:</span>
-              <div class="nudge-group">
-                <button type="button" class="btn-nudge" onclick="nudgeTime('start_${clipId}', -1.0)">-1s</button>
-                <input type="number" step="0.5" id="start_${clipId}" class="nudge-input" value="${cand.start}">
-                <button type="button" class="btn-nudge" onclick="nudgeTime('start_${clipId}', 1.0)">+1s</button>
-              </div>
-              <span class="trim-label" style="text-align: right;">End:</span>
-              <div class="nudge-group">
-                <button type="button" class="btn-nudge" onclick="nudgeTime('end_${clipId}', -1.0)">-1s</button>
-                <input type="number" step="0.5" id="end_${clipId}" class="nudge-input" value="${cand.end}">
-                <button type="button" class="btn-nudge" onclick="nudgeTime('end_${clipId}', 1.0)">+1s</button>
-              </div>
-            </div>
-            <div class="style-row">
-              <span>Layout Style:</span>
-              <select id="style_${clipId}" class="style-select">
-                <option value="blurred_background" ${jobCropStyle !== 'center_crop' ? 'selected' : ''}>Blurred Background</option>
-                <option value="center_crop" ${jobCropStyle === 'center_crop' ? 'selected' : ''}>Center Crop</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Card Actions -->
-          <div class="card-actions">
-            <div class="action-group-left">
-              ${playButton}
-              <button class="btn btn-rerender btn-sm" id="btnRender_${clipId}" onclick="triggerReRender('${clipId}')">
-                🔄 Re-render Clip
-              </button>
-            </div>
-            ${downloadLink}
-          </div>
-        `;
-
-        candidatesList.appendChild(card);
-      });
-
-      // Auto-preview first clip if player is idle
-      if (!verticalPlayerSource.src && currentCandidates.length > 0 && currentCandidates[0].rendered_file) {
-        const first = currentCandidates[0];
-        playRenderedClip(first.rendered_url, first.title, document.getElementById(`card_${first.id}`));
+        renderBtn.textContent = "🔄 Re-render this clip";
       }
     }
 
@@ -718,7 +1252,7 @@
 
         if (candRes.ok) {
           const cands = await candRes.json();
-          renderCandidates(cands, cropStyle);
+          syncCards(cands, cropStyle);
           btnDownloadAll.style.display = "inline-flex";
         }
         if (transRes.ok) {
@@ -745,6 +1279,12 @@
 
         if (data.timing) {
           updateTimingMetrics(data.timing);
+        }
+
+        // Show every clip as soon as it exists; finished ones get their player,
+        // the rest keep the "rendering..." placeholder. Sync is idempotent.
+        if (Array.isArray(data.candidates) && data.candidates.length > 0) {
+          syncCards(data.candidates, data.crop_style);
         }
 
         if (data.status === "completed" || data.status === "ready") {

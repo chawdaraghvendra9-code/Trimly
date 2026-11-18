@@ -12,6 +12,9 @@ jobs_data/*
 # FFmpeg render logs
 logs/
 
+# User background footage for "Split screen" (never commit other people's clips)
+backgrounds/
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -80,6 +80,40 @@ def snap_to_sentence_boundaries(
     return snapped_start, snapped_end, included_text
 
 
+def snap_to_word_boundaries(
+    target_start: float,
+    target_end: float,
+    segments: List[Dict[str, Any]],
+    lead_in: float = 0.2,
+    tail: float = 0.3
+) -> Tuple[float, float]:
+    """
+    Snaps a clip to real spoken words using word-level transcript timestamps.
+    Starts at the first word that overlaps the window and ends at the last word,
+    then adds a small lead-in before and tail after so speech is never clipped.
+    If the transcript has no word timestamps, the window is returned unchanged.
+    """
+    words: List[Tuple[float, float]] = []
+    for seg in segments:
+        for w in seg.get("words") or []:
+            try:
+                w_start = float(w["start"])
+                w_end = float(w["end"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            # Keep words that overlap the requested window (do not cut a word in half)
+            if w_end > target_start and w_start < target_end:
+                words.append((w_start, w_end))
+
+    if not words:
+        return round(target_start, 2), round(target_end, 2)
+
+    words.sort()
+    start = max(0.0, words[0][0] - lead_in)
+    end = words[-1][1] + tail
+    return round(start, 2), round(end, 2)
+
+
 def compute_overlap_ratio(start1: float, end1: float, start2: float, end2: float) -> float:
     """
     Computes overlap ratio between two time windows relative to the smaller clip.

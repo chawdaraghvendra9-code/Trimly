@@ -12,8 +12,9 @@ Python, FastAPI (uvicorn), faster-whisper, ffmpeg, plain HTML/JS. Highlights com
 ## Status
 - Stage 1 upload: done
 - Stage 2 transcription with timestamps: done
-- Stage 3 clip suggestions: done. Quality fixes (full transcript instead of chunks, two-pass topics, validation pass): [applied / not applied]
-- Stage 4-5 rendering: in progress. Rendering got stuck on clip 5 and a 10-minute video took 15+ minutes. [add any other details]
+- Stage 3 clip suggestions: done
+- Stage 4-5 rendering: done; Smart fit (default) and Split screen (clip on top, looping background clip below) plus Blurred/Solid/Gradient, hook title, progress bar; saved per project and used on re-render.
+- Import from link + UI: done; center-crop code kept but hidden.
 
 ## Pending tasks (in this order)
 1. Make rendering robust: ffmpeg with -y and -nostdin, arguments as a list, stderr written to logs/clip_XX.log, per-clip timeout, per-clip status in the UI (queued, rendering, done, failed with retry), captions as an escaped .ass file with correct Windows path handling, clamp clip end times to video duration, log the exact ffmpeg command.

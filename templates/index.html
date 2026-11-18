@@ -27,39 +27,73 @@
 
       <!-- Upload Form Section -->
       <section class="upload-section">
-        <h2>1. Upload Your Long Video</h2>
+        <h2>1. Add Your Long Video</h2>
         <p class="upload-subtext">Supported formats: MP4, MOV, MKV, WEBM (Max {{ max_file_size_mb }}MB, up to {{ max_video_minutes }} minutes)</p>
 
-        <form id="uploadForm" enctype="multipart/form-data">
-          <!-- Layout Style Selection -->
-          <div style="margin-bottom: 20px; background: rgba(15, 23, 42, 0.4); padding: 14px 18px; border-radius: 10px; border: 1px solid var(--card-border);">
-            <label for="cropStyleSelect" style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.95rem;">
-              🎨 Vertical 9:16 Layout Style:
-            </label>
-            <select id="cropStyleSelect" name="crop_style" style="background: #0f172a; border: 1px solid #475569; color: #f8fafc; padding: 8px 12px; border-radius: 6px; width: 100%; font-size: 0.95rem;">
-              <option value="blurred_background" selected>
-                Blurred Background (Recommended: fits full horizontal video centered over blurred zoom)
-              </option>
-              <option value="center_crop">
-                Center Crop (Direct 1080x1920 fill cropped from center)
-              </option>
-            </select>
-          </div>
+        <!-- Layout Style Selection (shared by both upload modes) -->
+        <div class="crop-style-box">
+          <label for="cropStyleSelect" class="crop-style-label">
+            🎨 Vertical 9:16 Layout Style:
+          </label>
+          <select id="cropStyleSelect" name="crop_style" class="crop-style-select">
+            <option value="blurred_background" selected>
+              Blurred Background (Recommended: fits full horizontal video centered over blurred zoom)
+            </option>
+          </select>
+        </div>
 
-          <div class="drop-zone" id="dropZone">
-            <div class="drop-zone-icon">📁</div>
-            <p class="drop-zone-title">Drag & drop your video here</p>
-            <p class="drop-zone-subtitle">or click to browse from your computer</p>
-            <input type="file" id="videoFileInput" name="video_file" accept=".mp4,.mov,.mkv,.avi,.webm" required>
-            <div id="fileSelectionInfo" class="file-selection-info" style="display:none;"></div>
-          </div>
+        <!-- Choose how to add the video -->
+        <div class="mode-tabs" role="tablist">
+          <button type="button" class="mode-tab active" id="modeTabFile" role="tab" aria-selected="true">
+            📁 Upload a file
+          </button>
+          <button type="button" class="mode-tab" id="modeTabLink" role="tab" aria-selected="false">
+            🔗 Import from link
+          </button>
+        </div>
+
+        <!-- Mode 1: upload a file from this computer -->
+        <div id="fileModePanel">
+          <form id="uploadForm" enctype="multipart/form-data">
+            <div class="drop-zone" id="dropZone">
+              <div class="drop-zone-icon">📁</div>
+              <p class="drop-zone-title">Drag & drop your video here</p>
+              <p class="drop-zone-subtitle">or click to browse from your computer</p>
+              <input type="file" id="videoFileInput" name="video_file" accept=".mp4,.mov,.mkv,.avi,.webm" required>
+              <div id="fileSelectionInfo" class="file-selection-info" style="display:none;"></div>
+            </div>
+
+            <div class="upload-actions">
+              <button type="submit" id="uploadBtn" class="btn btn-primary" disabled>
+                Upload & Start Processing
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Mode 2: import from a direct link, Google Drive or Dropbox -->
+        <div id="linkModePanel" style="display: none;">
+          <label for="importUrlInput" class="import-label">Video link</label>
+          <input
+            type="url"
+            id="importUrlInput"
+            class="url-input"
+            placeholder="https://youtube.com/watch?v=...  or  https://example.com/video.mp4  or  a Drive / Dropbox link"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <p class="field-hint">
+            YouTube, TikTok and Instagram video links, direct video file links (MP4, MOV, WEBM, MKV),
+            or public Google Drive / Dropbox share links. Other streaming sites are not supported.
+          </p>
+          <p class="import-note">⚠️ Only use content you own or have permission to clip.</p>
 
           <div class="upload-actions">
-            <button type="submit" id="uploadBtn" class="btn btn-primary" disabled>
-              Upload & Start Processing
+            <button type="button" id="importBtn" class="btn btn-primary">
+              Import from link
             </button>
           </div>
-        </form>
+        </div>
 
         <!-- Upload Progress & Status -->
         <div id="uploadProgressBox" class="progress-box" style="display:none;">
