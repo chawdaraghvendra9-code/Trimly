@@ -23,6 +23,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const importUrlInput = document.getElementById("importUrlInput");
   const importBtn = document.getElementById("importBtn");
 
+  // Icon rail mirrors the two tabs
+  const railUpload = document.getElementById("railUpload");
+  const railLink = document.getElementById("railLink");
+
   // Helper to show error banner
   function showError(msg) {
     errorMessageText.textContent = msg;
@@ -44,6 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
     modeTabLink.setAttribute("aria-selected", isFile ? "false" : "true");
     fileModePanel.style.display = isFile ? "block" : "none";
     linkModePanel.style.display = isFile ? "none" : "block";
+    if (railUpload) railUpload.classList.toggle("is-active", isFile);
+    if (railLink) railLink.classList.toggle("is-active", !isFile);
     uploadProgressBox.style.display = "none";
     hideError();
     if (!isFile) {
@@ -53,20 +59,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   modeTabFile.addEventListener("click", () => setMode("file"));
   modeTabLink.addEventListener("click", () => setMode("link"));
+  if (railUpload) railUpload.addEventListener("click", () => setMode("file"));
+  if (railLink) railLink.addEventListener("click", () => setMode("link"));
+
+  // Upload limit comes from the server so the two never disagree.
+  const maxSizeMB = parseFloat(uploadForm.dataset.maxSizeMb || "0");
 
   // Handle file input change
   videoFileInput.addEventListener("change", () => {
     hideError();
-    if (videoFileInput.files.length > 0) {
-      const file = videoFileInput.files[0];
-      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      fileSelectionInfo.textContent = `Selected: ${file.name} (${sizeMB} MB)`;
-      fileSelectionInfo.style.display = "inline-block";
-      uploadBtn.disabled = false;
-    } else {
+
+    if (!videoFileInput.files.length) {
       fileSelectionInfo.style.display = "none";
+      dropZone.classList.remove("has-file");
       uploadBtn.disabled = true;
+      return;
     }
+
+    const file = videoFileInput.files[0];
+    const sizeMB = file.size / (1024 * 1024);
+    fileSelectionInfo.textContent = `Selected: ${file.name} (${sizeMB.toFixed(1)} MB)`;
+    fileSelectionInfo.style.display = "inline-block";
+    dropZone.classList.add("has-file");
+
+    // Stop a too-large file before the whole upload is wasted.
+    if (maxSizeMB > 0 && sizeMB > maxSizeMB) {
+      showError(`That file is ${sizeMB.toFixed(1)} MB. The limit is ${maxSizeMB} MB.`);
+      uploadBtn.disabled = true;
+      return;
+    }
+
+    uploadBtn.disabled = false;
   });
 
   // Drag and drop events for dropZone

@@ -3,384 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Studio Editor - Cliptor Clip Studio</title>
+  <title>Studio - Cliptor Clip Studio</title>
   <link rel="stylesheet" href="/static/style.css">
   <style>
-    .editor-layout {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 24px;
-      margin-top: 24px;
-    }
-    @media (max-width: 900px) {
-      .editor-layout {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Vertical Preview Player Column */
-    .player-card {
-      background: rgba(15, 23, 42, 0.5);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 18px;
-      text-align: center;
-      position: sticky;
-      top: 20px;
-    }
-    .vertical-phone-frame {
-      width: 100%;
-      max-width: 300px;
-      aspect-ratio: 9 / 16;
-      background: #000;
-      border-radius: 12px;
-      overflow: hidden;
-      margin: 0 auto 14px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
-      border: 2px solid #334155;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .vertical-video-player {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #000;
-    }
-    .active-clip-info {
-      font-size: 0.9rem;
-      color: #94a3b8;
-      margin-bottom: 12px;
-      line-height: 1.4;
-    }
-
-    /* Candidate Cards */
-    .candidates-panel {
-      background: rgba(15, 23, 42, 0.3);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 20px;
-    }
-    .panel-header-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--card-border);
-      padding-bottom: 14px;
-    }
-    .candidate-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 18px;
-      transition: all 0.2s ease;
-    }
-    .candidate-card.active-preview {
-      border-color: #38bdf8;
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
-    }
-    .card-top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #f8fafc;
-    }
-    .badge-group {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      flex-shrink: 0;
-    }
-    .score-badge {
-      background: #4338ca;
-      color: #e0e7ff;
-      font-weight: 700;
-      font-size: 0.8rem;
-      padding: 3px 8px;
-      border-radius: 12px;
-    }
-    .source-tag {
-      font-size: 0.75rem;
-      padding: 3px 6px;
-      border-radius: 4px;
-      background: #334155;
-      color: #cbd5e1;
-      font-weight: 600;
-    }
-    .time-tag {
-      font-family: monospace;
-      font-size: 0.85rem;
-      color: #38bdf8;
-      margin-bottom: 6px;
-    }
-    .reason-text {
-      font-size: 0.88rem;
-      color: #cbd5e1;
-      margin-bottom: 8px;
-      font-style: italic;
-    }
-    .completeness-note {
-      font-size: 0.82rem;
-      color: #a5b4fc;
-      margin-bottom: 10px;
-      background: rgba(99, 102, 241, 0.1);
-      padding: 6px 10px;
-      border-radius: 6px;
-      border-left: 3px solid #6366f1;
-    }
-    .failed-note {
-      font-size: 0.82rem;
-      color: #fca5a5;
-      margin-bottom: 10px;
-      background: rgba(239, 68, 68, 0.1);
-      padding: 6px 10px;
-      border-radius: 6px;
-      border-left: 3px solid #ef4444;
-    }
-    .clip-quote {
-      background: rgba(15, 23, 42, 0.6);
-      border-left: 3px solid #475569;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 0.85rem;
-      color: #94a3b8;
-      margin-bottom: 14px;
-      line-height: 1.5;
-    }
-
-    /* Trim & Nudge Controls */
-    .trim-box {
-      background: rgba(15, 23, 42, 0.5);
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 12px 14px;
-      margin-bottom: 14px;
-    }
-    .trim-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-    }
-    .trim-label {
-      color: #cbd5e1;
-      font-weight: 600;
-      width: 50px;
-    }
-    .nudge-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-nudge {
-      background: #334155;
-      color: #fff;
-      border: 1px solid #475569;
-      padding: 3px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: bold;
-    }
-    .btn-nudge:hover {
-      background: #475569;
-    }
-    .nudge-input {
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #38bdf8;
-      padding: 3px 6px;
-      border-radius: 4px;
-      width: 65px;
-      text-align: center;
-      font-family: monospace;
-      font-size: 0.85rem;
-    }
-    .style-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.85rem;
-      color: #cbd5e1;
-      margin-top: 6px;
-    }
-    .style-select {
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #f8fafc;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-    }
-
-    .card-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .action-group-left {
-      display: flex;
-      gap: 8px;
-    }
-    .btn-sm {
-      padding: 6px 14px;
-      font-size: 0.85rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .btn-download {
-      background: #059669;
-      color: #fff;
-    }
-    .btn-download:hover {
-      background: #047857;
-    }
-    .btn-rerender {
-      background: #2563eb;
-      color: #fff;
-    }
-    .btn-rerender:hover {
-      background: #1d4ed8;
-    }
-
-    /* Tabs */
-    .tab-header {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    .tab-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 6px 14px;
-      border-radius: 6px;
-      transition: all 0.2s;
-    }
-    .tab-btn.active {
-      color: #fff;
-      background: #334155;
-    }
-    .transcript-scroll {
-      max-height: 520px;
-      overflow-y: auto;
-      background: #0f172a;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      line-height: 1.7;
-      border: 1px solid #334155;
-    }
-    .transcript-line {
-      display: flex;
-      gap: 10px;
-      padding: 6px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .transcript-line:hover {
-      background: #1e293b;
-    }
-    .time-badge {
-      font-family: monospace;
-      font-size: 0.8rem;
-      color: #38bdf8;
-      background: #1e293b;
-      padding: 2px 6px;
-      border-radius: 4px;
-      white-space: nowrap;
-    }
-
-    /* ===== Results grid: one card per clip, each with its own player ===== */
-    .clips-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 18px;
-    }
-    .clip-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .clip-player-wrap {
-      background: #000;
-    }
-    .clip-video {
-      width: 100%;
-      height: 360px;
-      object-fit: contain;
-      background: #000;
-      display: none;
-    }
-    .player-placeholder {
-      height: 360px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      text-align: center;
-      color: #94a3b8;
-      font-size: 0.95rem;
-      background: rgba(15, 23, 42, 0.6);
-    }
-    .clip-card-body {
-      padding: 14px 16px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .clip-card-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #f8fafc;
-    }
-    .clip-card-meta {
-      font-family: monospace;
-      font-size: 0.8rem;
-      color: #38bdf8;
-    }
-    .clip-transcript summary {
-      cursor: pointer;
-      color: #38bdf8;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-    .clip-transcript p {
-      margin-top: 8px;
-      font-size: 0.85rem;
-      color: #cbd5e1;
-      line-height: 1.5;
-      max-height: 180px;
-      overflow-y: auto;
-    }
-    .clip-card .trim-row {
-      flex-wrap: wrap;
-      justify-content: flex-start;
-    }
-
-    /* Caption font picker */
+    /* Caption fonts are loaded straight from the project's fonts/ folder. */
     {% for style in font_styles %}{% if style.filename %}
     @font-face {
       font-family: "{{ style.css_family }}";
@@ -388,386 +14,228 @@
       font-display: swap;
     }
     {% endif %}{% endfor %}
-
-    .font-picker-card {
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 14px 18px;
-      margin-top: 16px;
-    }
-    .font-picker-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .font-picker-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #cbd5e1;
-    }
-    .font-select {
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #f8fafc;
-      padding: 7px 10px;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      min-width: 240px;
-    }
-    .font-sample {
-      margin-top: 10px;
-      font-size: 1.15rem;
-      color: #f8fafc;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-shadow: 0 2px 0 #000;
-    }
-    .font-picker-note {
-      font-size: 0.75rem;
-      color: #94a3b8;
-      margin-top: 6px;
-    }
-
-    /* Video style / hook / progress controls */
-    .video-style-card {
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 14px 18px;
-      margin-top: 12px;
-    }
-    .video-style-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-    .video-style-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #cbd5e1;
-      min-width: 96px;
-    }
-    .swatch-row {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .swatch {
-      width: 26px;
-      height: 26px;
-      border-radius: 6px;
-      border: 2px solid #475569;
-      cursor: pointer;
-      padding: 0;
-    }
-    .swatch:hover {
-      border-color: #38bdf8;
-    }
-    .style-color-input {
-      width: 40px;
-      height: 30px;
-      padding: 0;
-      border: 1px solid #475569;
-      border-radius: 6px;
-      background: #0f172a;
-      cursor: pointer;
-    }
-    .mini-number {
-      width: 62px;
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #f8fafc;
-      padding: 6px 8px;
-      border-radius: 6px;
-    }
-    .mini-select {
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #f8fafc;
-      padding: 6px 8px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-    }
-    .bg-upload-input {
-      max-width: 210px;
-      color: #cbd5e1;
-      font-size: 0.78rem;
-    }
-    .btn-small {
-      background: #1d4ed8;
-      border: none;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn-small:hover {
-      background: #2563eb;
-    }
-    .check-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
-      color: #cbd5e1;
-      cursor: pointer;
-    }
-    .hook-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .hook-input {
-      flex: 1;
-      min-width: 0;
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #f8fafc;
-      padding: 7px 10px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-    }
-    .is-hidden {
-      display: none !important;
-    }
   </style>
 </head>
 <body>
-  <div class="app-container" style="max-width: 1100px;">
-    <header class="app-header">
-      <div class="logo">
-        <span class="logo-icon">✂️</span>
-        <h1>Cliptor Clip Studio</h1>
-      </div>
-      <p class="tagline">Job ID: <span id="displayJobId">{{ job.job_id }}</span></p>
-    </header>
+  <div class="shell">
+    <aside class="rail">
+      <a class="rail-brand" href="/" title="Cliptor" aria-label="Cliptor home">✂</a>
+      <div class="rail-spacer"></div>
+      <a class="rail-icon" href="/" title="Back to upload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9.5 20v-6h5v6"/>
+        </svg>
+        <span class="is-hidden">Back to upload</span>
+      </a>
+    </aside>
 
-    <main class="content-box">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <span class="status-badge {{ job.status }}" id="jobStatusBadge">Status: {{ job.status }}</span>
-          <h2 style="font-size: 1.2rem; word-break: break-all;">{{ job.original_filename }}</h2>
+    <div class="panel">
+      <header class="panel-head">
+        <div class="panel-head-main">
+          <p class="eyebrow">Project</p>
+          <h1 class="job-title">{{ job.original_filename }}</h1>
+          <div class="job-meta">
+            <span class="status-pill status-{{ job.status }}" id="jobStatusBadge">Status: {{ job.status }}</span>
+            <span class="chip">9:16 · 1080 × 1920</span>
+            <span class="chip chip-mono" title="{{ job.job_id }}">#{{ job.job_id }}</span>
+          </div>
         </div>
-        <div style="display: flex; gap: 10px;">
-          <a href="/api/jobs/{{ job.job_id }}/download-all" id="btnDownloadAll" class="btn btn-primary" style="display: none;">
-            📦 Download All (.ZIP)
+        <div class="head-actions">
+          <a href="/api/jobs/{{ job.job_id }}/download-all" id="btnDownloadAll" class="btn btn-download btn-sm" style="display: none;">
+            Download all
           </a>
-          <a href="/" class="btn btn-secondary">New Upload</a>
+          <a href="/" class="btn btn-secondary btn-sm">New upload</a>
         </div>
-      </div>
+      </header>
 
-      <!-- Processing Progress Box -->
-      <div id="processingBox" class="progress-box" style="margin-top: 16px;">
+      <div id="processingBox" class="progress-card">
         <div class="progress-bar-container">
           <div id="jobProgressBar" class="progress-bar" style="width: {{ job.progress_percent }}%;"></div>
         </div>
         <p id="jobProgressText" class="progress-text">{{ job.progress_message }}</p>
       </div>
 
-      <!-- Error Message Banner -->
       <div id="errorBanner" class="error-banner" style="display: {% if job.error %}flex{% else %}none{% endif %};">
-        <span class="error-icon">❌</span>
+        <span class="error-icon">●</span>
         <div>
-          <strong>Processing Error:</strong>
+          <strong>Processing error:</strong>
           <span id="errorMessage">{{ job.error or '' }}</span>
-          <p style="font-size: 0.8rem; margin-top: 4px; color: #fca5a5;">
-            Technical details have been saved to <code>cliptor.log</code> and printed to the terminal.
+          <p class="hint" style="color:#a94136;">
+            Technical details were saved to <code>cliptor.log</code> and printed to the terminal.
           </p>
         </div>
       </div>
 
-      <!-- Timing & Benchmark Metrics Box -->
-      <div id="timingBox" style="display: none; background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; margin-top: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-          <h4 style="font-size: 1rem; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
-            ⏱️ Stage Timing Breakdown & Processing Speed
-          </h4>
-          <span id="timingSpeedRatio" style="font-size: 0.85rem; background: #4338ca; color: #e0e7ff; padding: 4px 12px; border-radius: 20px; font-weight: 700;">
-            -
-          </span>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; font-size: 0.82rem; text-align: center;">
-          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
-            <div style="color: #94a3b8; margin-bottom: 4px;">Video Length</div>
-            <strong id="timeVideoLen" style="color: #f8fafc; font-size: 1rem;">-</strong>
+      <!-- Settings: caption font + video style (saved per project) -->
+      <div class="settings-grid">
+        <section class="card">
+          <div class="card-head" style="margin-bottom:12px;">
+            <h2>Caption font</h2>
+            <span id="fontState" class="save-state"></span>
           </div>
-          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
-            <div style="color: #94a3b8; margin-bottom: 4px;">1. Audio Extract</div>
-            <strong id="timeAudio" style="color: #f8fafc; font-size: 1rem;">-</strong>
+          <div class="font-picker-row">
+            <select id="fontStyleSelect" class="font-select" onchange="changeFontStyle()" aria-label="Caption font">
+              {% for style in font_styles %}
+              <option value="{{ style.key }}"
+                      style="font-family: {% if style.filename %}'{{ style.css_family }}'{% else %}Arial{% endif %};"
+                      {% if style.key == current_font_style %}selected{% endif %}>{{ style.label }}</option>
+              {% endfor %}
+            </select>
           </div>
-          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
-            <div style="color: #94a3b8; margin-bottom: 4px;">2. Transcription</div>
-            <strong id="timeTranscribe" style="color: #f8fafc; font-size: 1rem;">-</strong>
+          <p class="font-sample" id="fontSample">Sample: THIS IS HOW YOUR CAPTIONS LOOK</p>
+          <p class="font-picker-note">Saved for this project. Re-render a clip to apply it to an existing video.</p>
+        </section>
+
+        <section class="card">
+          <div class="card-head" style="margin-bottom:12px;">
+            <h2>Video style</h2>
+            <span id="saveState" class="save-state"></span>
           </div>
-          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
-            <div style="color: #94a3b8; margin-bottom: 4px;">3. Highlights</div>
-            <strong id="timeHighlights" style="color: #f8fafc; font-size: 1rem;">-</strong>
+
+          <div class="video-style-row">
+            <select id="videoStyleSelect" class="font-select" onchange="changeVideoStyle()" aria-label="Video style">
+              <option value="smart_fit" {% if video_settings.video_style == 'smart_fit' %}selected{% endif %}>Smart fit (tall crop, rounded)</option>
+              <option value="split" {% if video_settings.video_style == 'split' %}selected{% endif %}>Split screen (clip + background)</option>
+              <option value="blurred" {% if video_settings.video_style == 'blurred' %}selected{% endif %}>Blurred</option>
+              <option value="solid" {% if video_settings.video_style == 'solid' %}selected{% endif %}>Solid color</option>
+              <option value="gradient" {% if video_settings.video_style == 'gradient' %}selected{% endif %}>Gradient</option>
+            </select>
           </div>
-          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
-            <div style="color: #94a3b8; margin-bottom: 4px;">4. Clip Rendering</div>
-            <strong id="timeRender" style="color: #f8fafc; font-size: 1rem;">-</strong>
+
+          <div id="smartControls" class="video-style-row {% if video_settings.video_style != 'smart_fit' %}is-hidden{% endif %}">
+            <span class="video-style-label">Crop shape</span>
+            <select id="smartAspect" class="mini-select" onchange="changeVideoStyle()">
+              <option value="4:5" {% if video_settings.smart_aspect == '4:5' %}selected{% endif %}>4:5</option>
+              <option value="1:1" {% if video_settings.smart_aspect == '1:1' %}selected{% endif %}>1:1</option>
+              <option value="3:4" {% if video_settings.smart_aspect == '3:4' %}selected{% endif %}>3:4</option>
+            </select>
+            <label class="check-label">
+              <input type="checkbox" id="smartZoom" {% if video_settings.smart_zoom %}checked{% endif %} onchange="changeVideoStyle()">
+              Slow punch-in
+            </label>
+            <span class="video-style-label">Background</span>
+            <select id="smartBackground" class="mini-select" onchange="changeVideoStyle()">
+              <option value="blurred" {% if video_settings.smart_background == 'blurred' %}selected{% endif %}>Blurred</option>
+              <option value="solid" {% if video_settings.smart_background == 'solid' %}selected{% endif %}>Solid color</option>
+              <option value="gradient" {% if video_settings.smart_background == 'gradient' %}selected{% endif %}>Gradient</option>
+            </select>
           </div>
-          <div style="background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #6366f1;">
-            <div style="color: #a5b4fc; margin-bottom: 4px;">Total Pipeline</div>
-            <strong id="timeTotal" style="color: #38bdf8; font-size: 1rem;">-</strong>
+
+          <div id="splitControls" class="video-style-row {% if video_settings.video_style != 'split' %}is-hidden{% endif %}">
+            <span class="video-style-label">Background</span>
+            <select id="splitBackground" class="mini-select" onchange="changeVideoStyle()" aria-label="Background clip">
+              <option value="random" {% if video_settings.split_background == 'random' %}selected{% endif %}>Random</option>
+              <option value="none" {% if video_settings.split_background == 'none' %}selected{% endif %}>No clip (dark)</option>
+              {% for bg in backgrounds %}
+              <option value="{{ bg.name }}" {% if video_settings.split_background == bg.name %}selected{% endif %}>{{ bg.name }}</option>
+              {% endfor %}
+            </select>
+            <input type="file" id="splitUpload" class="bg-upload-input" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime" aria-label="Upload a background clip">
+            <button type="button" class="btn-small" onclick="uploadBackground()">Upload</button>
+            <label class="check-label">
+              <input type="checkbox" id="splitDivider" {% if video_settings.split_divider %}checked{% endif %} onchange="changeVideoStyle()">
+              Seam line
+            </label>
           </div>
-        </div>
+          <p id="splitNote" class="font-picker-note {% if video_settings.video_style != 'split' %}is-hidden{% endif %}" style="margin-top:0;">
+            Only use background footage you own or that has a licence allowing reuse.
+          </p>
+          <p id="splitStatus" class="font-picker-note is-hidden" aria-live="polite"></p>
+
+          <div id="solidControls" class="video-style-row {% if video_settings.video_style != 'solid' %}is-hidden{% endif %}">
+            <span class="video-style-label">Solid color</span>
+            <div class="swatch-row">
+              <button type="button" class="swatch" title="Black" style="background:#000000" onclick="setSolidColor('#000000')"></button>
+              <button type="button" class="swatch" title="White" style="background:#FFFFFF" onclick="setSolidColor('#FFFFFF')"></button>
+              <button type="button" class="swatch" title="Navy" style="background:#0F172A" onclick="setSolidColor('#0F172A')"></button>
+              <button type="button" class="swatch" title="Blue" style="background:#1D4ED8" onclick="setSolidColor('#1D4ED8')"></button>
+              <button type="button" class="swatch" title="Red" style="background:#DC2626" onclick="setSolidColor('#DC2626')"></button>
+              <button type="button" class="swatch" title="Green" style="background:#16A34A" onclick="setSolidColor('#16A34A')"></button>
+            </div>
+            <input type="color" id="solidColor" class="style-color-input" value="{{ video_settings.solid_color }}" onchange="changeVideoStyle()" aria-label="Solid background color">
+          </div>
+
+          <div id="gradientControls" class="video-style-row {% if video_settings.video_style != 'gradient' %}is-hidden{% endif %}">
+            <span class="video-style-label">Gradient</span>
+            <div class="swatch-row">
+              <button type="button" class="swatch" title="Midnight" style="background:linear-gradient(#0F172A,#1E3A8A)" onclick="setGradient('#0F172A','#1E3A8A')"></button>
+              <button type="button" class="swatch" title="Sunset" style="background:linear-gradient(#F97316,#7C2D12)" onclick="setGradient('#F97316','#7C2D12')"></button>
+              <button type="button" class="swatch" title="Purple" style="background:linear-gradient(#6D28D9,#1E1B4B)" onclick="setGradient('#6D28D9','#1E1B4B')"></button>
+              <button type="button" class="swatch" title="Ocean" style="background:linear-gradient(#06B6D4,#0F172A)" onclick="setGradient('#06B6D4','#0F172A')"></button>
+              <button type="button" class="swatch" title="Slate" style="background:linear-gradient(#111827,#374151)" onclick="setGradient('#111827','#374151')"></button>
+            </div>
+            <input type="color" id="gradientTop" class="style-color-input" value="{{ video_settings.gradient_top }}" onchange="changeVideoStyle()" aria-label="Gradient top color">
+            <input type="color" id="gradientBottom" class="style-color-input" value="{{ video_settings.gradient_bottom }}" onchange="changeVideoStyle()" aria-label="Gradient bottom color">
+          </div>
+
+          <div class="video-style-row">
+            <label class="check-label">
+              <input type="checkbox" id="hookEnabled" {% if video_settings.hook_enabled %}checked{% endif %} onchange="changeVideoStyle()">
+              Hook title
+            </label>
+            <label class="check-label" for="hookDuration">for</label>
+            <input type="number" id="hookDuration" class="mini-number" min="1" max="6" step="1"
+                   value="{{ video_settings.hook_duration }}" onchange="changeVideoStyle()" aria-label="Hook duration in seconds">
+            <span class="check-label">seconds</span>
+          </div>
+
+          <div class="video-style-row" style="margin-bottom:0;">
+            <label class="check-label">
+              <input type="checkbox" id="progressBar" {% if video_settings.progress_bar %}checked{% endif %} onchange="changeVideoStyle()">
+              Progress bar
+            </label>
+            <input type="color" id="progressColor" class="style-color-input" value="{{ video_settings.progress_color }}" onchange="changeVideoStyle()" aria-label="Progress bar color">
+          </div>
+        </section>
       </div>
 
-      <!-- Caption font for the whole project -->
-      <div class="font-picker-card">
-        <div class="font-picker-row">
-          <label class="font-picker-label" for="fontStyleSelect">🔤 Caption font</label>
-          <select id="fontStyleSelect" class="font-select" onchange="changeFontStyle()">
-            {% for style in font_styles %}
-            <option value="{{ style.key }}"
-                    style="font-family: {% if style.filename %}'{{ style.css_family }}'{% else %}Arial{% endif %};"
-                    {% if style.key == current_font_style %}selected{% endif %}>{{ style.label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <p class="font-sample" id="fontSample">Sample: THIS IS HOW YOUR CAPTIONS LOOK</p>
-        <p class="font-picker-note">Saved for this project. Re-render a clip to apply it to an existing video.</p>
-      </div>
-
-      <!-- Video style, hook title and progress bar for the whole project -->
-      <div class="video-style-card">
-        <div class="video-style-row">
-          <label class="video-style-label" for="videoStyleSelect">🎬 Video style</label>
-          <select id="videoStyleSelect" class="font-select" onchange="changeVideoStyle()">
-            <option value="smart_fit" {% if video_settings.video_style == 'smart_fit' %}selected{% endif %}>Smart fit (tall crop, rounded)</option>
-            <option value="split" {% if video_settings.video_style == 'split' %}selected{% endif %}>Split screen (clip + background)</option>
-            <option value="blurred" {% if video_settings.video_style == 'blurred' %}selected{% endif %}>Blurred</option>
-            <option value="solid" {% if video_settings.video_style == 'solid' %}selected{% endif %}>Solid color</option>
-            <option value="gradient" {% if video_settings.video_style == 'gradient' %}selected{% endif %}>Gradient</option>
-          </select>
-        </div>
-
-        <div id="smartControls" class="video-style-row {% if video_settings.video_style != 'smart_fit' %}is-hidden{% endif %}">
-          <span class="video-style-label">Crop shape</span>
-          <select id="smartAspect" class="mini-select" onchange="changeVideoStyle()">
-            <option value="4:5" {% if video_settings.smart_aspect == '4:5' %}selected{% endif %}>4:5</option>
-            <option value="1:1" {% if video_settings.smart_aspect == '1:1' %}selected{% endif %}>1:1</option>
-            <option value="3:4" {% if video_settings.smart_aspect == '3:4' %}selected{% endif %}>3:4</option>
-          </select>
-          <label class="check-label">
-            <input type="checkbox" id="smartZoom" {% if video_settings.smart_zoom %}checked{% endif %} onchange="changeVideoStyle()">
-            Slow punch-in
-          </label>
-          <span class="video-style-label" style="min-width:0;">Background</span>
-          <select id="smartBackground" class="mini-select" onchange="changeVideoStyle()">
-            <option value="blurred" {% if video_settings.smart_background == 'blurred' %}selected{% endif %}>Blurred</option>
-            <option value="solid" {% if video_settings.smart_background == 'solid' %}selected{% endif %}>Solid color</option>
-            <option value="gradient" {% if video_settings.smart_background == 'gradient' %}selected{% endif %}>Gradient</option>
-          </select>
-        </div>
-
-        <div id="splitControls" class="video-style-row {% if video_settings.video_style != 'split' %}is-hidden{% endif %}">
-          <span class="video-style-label">Background</span>
-          <select id="splitBackground" class="mini-select" onchange="changeVideoStyle()">
-            <option value="random" {% if video_settings.split_background == 'random' %}selected{% endif %}>Random</option>
-            <option value="none" {% if video_settings.split_background == 'none' %}selected{% endif %}>No clip (dark)</option>
-            {% for bg in backgrounds %}
-            <option value="{{ bg.name }}" {% if video_settings.split_background == bg.name %}selected{% endif %}>{{ bg.name }}</option>
-            {% endfor %}
-          </select>
-          <input type="file" id="splitUpload" class="bg-upload-input" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime">
-          <button type="button" class="btn-small" onclick="uploadBackground()">Upload</button>
-          <label class="check-label">
-            <input type="checkbox" id="splitDivider" {% if video_settings.split_divider %}checked{% endif %} onchange="changeVideoStyle()">
-            Seam line
-          </label>
-        </div>
-        <p id="splitNote" class="font-picker-note {% if video_settings.video_style != 'split' %}is-hidden{% endif %}" style="margin-top:0;">
-          Only use background footage you own or that has a licence allowing reuse.
-        </p>
-
-        <div id="solidControls" class="video-style-row {% if video_settings.video_style != 'solid' %}is-hidden{% endif %}">
-          <span class="video-style-label">Solid color</span>
-          <div class="swatch-row">
-            <button type="button" class="swatch" title="Black" style="background:#000000" onclick="setSolidColor('#000000')"></button>
-            <button type="button" class="swatch" title="White" style="background:#FFFFFF" onclick="setSolidColor('#FFFFFF')"></button>
-            <button type="button" class="swatch" title="Navy" style="background:#0F172A" onclick="setSolidColor('#0F172A')"></button>
-            <button type="button" class="swatch" title="Blue" style="background:#1D4ED8" onclick="setSolidColor('#1D4ED8')"></button>
-            <button type="button" class="swatch" title="Red" style="background:#DC2626" onclick="setSolidColor('#DC2626')"></button>
-            <button type="button" class="swatch" title="Green" style="background:#16A34A" onclick="setSolidColor('#16A34A')"></button>
-          </div>
-          <input type="color" id="solidColor" class="style-color-input" value="{{ video_settings.solid_color }}" onchange="changeVideoStyle()">
-        </div>
-
-        <div id="gradientControls" class="video-style-row {% if video_settings.video_style != 'gradient' %}is-hidden{% endif %}">
-          <span class="video-style-label">Gradient</span>
-          <div class="swatch-row">
-            <button type="button" class="swatch" title="Midnight" style="background:linear-gradient(#0F172A,#1E3A8A)" onclick="setGradient('#0F172A','#1E3A8A')"></button>
-            <button type="button" class="swatch" title="Sunset" style="background:linear-gradient(#F97316,#7C2D12)" onclick="setGradient('#F97316','#7C2D12')"></button>
-            <button type="button" class="swatch" title="Purple" style="background:linear-gradient(#6D28D9,#1E1B4B)" onclick="setGradient('#6D28D9','#1E1B4B')"></button>
-            <button type="button" class="swatch" title="Ocean" style="background:linear-gradient(#06B6D4,#0F172A)" onclick="setGradient('#06B6D4','#0F172A')"></button>
-            <button type="button" class="swatch" title="Slate" style="background:linear-gradient(#111827,#374151)" onclick="setGradient('#111827','#374151')"></button>
-          </div>
-          <input type="color" id="gradientTop" class="style-color-input" value="{{ video_settings.gradient_top }}" onchange="changeVideoStyle()">
-          <input type="color" id="gradientBottom" class="style-color-input" value="{{ video_settings.gradient_bottom }}" onchange="changeVideoStyle()">
-        </div>
-
-        <div class="video-style-row">
-          <label class="check-label">
-            <input type="checkbox" id="hookEnabled" {% if video_settings.hook_enabled %}checked{% endif %} onchange="changeVideoStyle()">
-            Hook title
-          </label>
-          <label class="check-label" for="hookDuration">seconds</label>
-          <input type="number" id="hookDuration" class="mini-number" min="1" max="6" step="1"
-                 value="{{ video_settings.hook_duration }}" onchange="changeVideoStyle()">
-          <span class="font-picker-note" style="margin:0;">Edit the text on each clip below.</span>
-        </div>
-
-        <div class="video-style-row" style="margin-bottom:0;">
-          <label class="check-label">
-            <input type="checkbox" id="progressBar" {% if video_settings.progress_bar %}checked{% endif %} onchange="changeVideoStyle()">
-            Progress bar
-          </label>
-          <input type="color" id="progressColor" class="style-color-input" value="{{ video_settings.progress_color }}" onchange="changeVideoStyle()">
-        </div>
-      </div>
-
-      <!-- Results: one card per clip, each card has its own rendered-clip player -->
-      <div class="candidates-panel" style="margin-top: 20px;">
+      <!-- Results: one card per clip, each with its own rendered player -->
+      <section class="candidates-panel">
         <div class="tab-header">
           <button class="tab-btn active" id="tabCandidatesBtn" onclick="switchTab('candidates')">
             Clips (<span id="candidateCountLabel">0</span>)
           </button>
           <button class="tab-btn" id="tabTranscriptBtn" onclick="switchTab('transcript')">
-            Full Transcript
+            Full transcript
           </button>
         </div>
 
-        <!-- Tab Content: Clip Cards -->
         <div id="candidatesTabContent">
-          <p id="clipsEmpty" style="color: var(--text-muted); font-style: italic;">
-            Processing video, selecting highlights, and rendering 9:16 clips with captions...
-          </p>
+          <div id="clipsEmpty" class="empty-state">
+            <span class="empty-icon">🎬</span>
+            <p>Processing the video, picking highlights and rendering 9:16 clips…</p>
+          </div>
           <div id="clipsGrid" class="clips-grid"></div>
         </div>
 
-        <!-- Tab Content: Transcript -->
         <div id="transcriptTabContent" style="display: none;">
           <div id="transcriptBox" class="transcript-scroll">
-            <p style="color: var(--text-muted); font-style: italic;">Loading transcript...</p>
+            <p class="muted" style="padding:10px;">Loading transcript…</p>
           </div>
         </div>
-      </div>
-    </main>
+      </section>
 
-    <footer class="app-footer">
-      <p>Cliptor Clip Studio • Local & Private Video Clipper</p>
-    </footer>
+      <!-- Timing breakdown (shown once the pipeline reports it) -->
+      <section id="timingBox" class="timing-card" style="display: none;">
+        <div class="timing-head">
+          <h4>Stage timing &amp; speed</h4>
+          <span id="timingSpeedRatio" class="timing-badge">-</span>
+        </div>
+        <div class="timing-grid">
+          <div class="timing-stat"><span>Video length</span><strong id="timeVideoLen">-</strong></div>
+          <div class="timing-stat"><span>1. Audio</span><strong id="timeAudio">-</strong></div>
+          <div class="timing-stat"><span>2. Transcription</span><strong id="timeTranscribe">-</strong></div>
+          <div class="timing-stat"><span>3. Highlights</span><strong id="timeHighlights">-</strong></div>
+          <div class="timing-stat"><span>4. Rendering</span><strong id="timeRender">-</strong></div>
+          <div class="timing-stat is-total"><span>Total</span><strong id="timeTotal">-</strong></div>
+        </div>
+      </section>
+
+      <footer class="app-footer">
+        <span>Cliptor Clip Studio</span>
+        <span>Local &amp; private video clipper</span>
+      </footer>
+    </div>
   </div>
 
   <script>
@@ -784,6 +252,34 @@
     const clipsEmpty = document.getElementById("clipsEmpty");
     const candidateCountLabel = document.getElementById("candidateCountLabel");
     const transcriptBox = document.getElementById("transcriptBox");
+    const saveState = document.getElementById("saveState");
+    const fontState = document.getElementById("fontState");
+    const splitStatus = document.getElementById("splitStatus");
+
+    // Small inline status text instead of pop-up alerts.
+    function setStateText(el, text, state) {
+      if (!el) return;
+      el.textContent = text;
+      el.className = `save-state ${state || ""}`;
+    }
+
+    function setSaveState(text, state) {
+      setStateText(saveState, text, state);
+    }
+
+    // Background upload feedback sits under the split controls.
+    function showSplitStatus(text, kind) {
+      if (!splitStatus) return;
+      splitStatus.textContent = text || "";
+      splitStatus.className = `font-picker-note ${kind ? `is-${kind}` : ""} ${text ? "" : "is-hidden"}`;
+    }
+
+    function showCardError(clipId, message) {
+      const failed = document.getElementById(`failed_${clipId}`);
+      if (!failed) return;
+      failed.textContent = `● ${message}`;
+      failed.style.display = "block";
+    }
 
     // Tab switching
     function switchTab(tab) {
@@ -847,10 +343,16 @@
       card.innerHTML = `
         <div class="clip-player-wrap">
           <video class="clip-video" id="video_${clipId}" controls preload="metadata" playsinline></video>
-          <div class="player-placeholder" id="placeholder_${clipId}">⏳ Rendering…</div>
+          <div class="player-placeholder" id="placeholder_${clipId}">
+            <span class="spinner"></span>
+            <span id="placeholderText_${clipId}">Rendering…</span>
+          </div>
         </div>
         <div class="clip-card-body">
-          <div class="clip-card-title" id="title_${clipId}"></div>
+          <div class="clip-card-head">
+            <div class="clip-card-title" id="title_${clipId}"></div>
+            <span class="clip-status" id="statusChip_${clipId}">queued</span>
+          </div>
           <div class="clip-card-meta" id="meta_${clipId}"></div>
           <div class="failed-note" id="failed_${clipId}" style="display: none;"></div>
 
@@ -859,7 +361,7 @@
               <span class="trim-label">Start</span>
               <div class="nudge-group">
                 ${nudgeBtn("start", -1)}${nudgeBtn("start", -0.5)}
-                <input type="number" step="0.1" id="start_${clipId}" class="nudge-input" value="${cand.start}">
+                <input type="number" step="0.1" id="start_${clipId}" class="nudge-input" value="${cand.start}" aria-label="Clip start">
                 ${nudgeBtn("start", 0.5)}${nudgeBtn("start", 1)}
               </div>
             </div>
@@ -867,7 +369,7 @@
               <span class="trim-label">End</span>
               <div class="nudge-group">
                 ${nudgeBtn("end", -1)}${nudgeBtn("end", -0.5)}
-                <input type="number" step="0.1" id="end_${clipId}" class="nudge-input" value="${cand.end}">
+                <input type="number" step="0.1" id="end_${clipId}" class="nudge-input" value="${cand.end}" aria-label="Clip end">
                 ${nudgeBtn("end", 0.5)}${nudgeBtn("end", 1)}
               </div>
             </div>
@@ -875,21 +377,19 @@
               <span class="trim-label">Hook</span>
               <input type="text" id="hook_${clipId}" class="hook-input" maxlength="90"
                      value="${escapeAttr(cand.hook_title || cand.title || '')}"
-                     placeholder="Optional headline shown at the top">
+                     placeholder="Optional headline shown at the top" aria-label="Hook title">
             </div>
-            <div class="style-row">
-              <span>Layout Style:</span>
-              <select id="style_${clipId}" class="style-select">
-                <option value="blurred_background" selected>Blurred Background</option>
-              </select>
-            </div>
+            <!-- Legacy crop_style field: kept so re-renders send the same value. -->
+            <select id="style_${clipId}" class="is-hidden" tabindex="-1" aria-hidden="true">
+              <option value="blurred_background" selected>Blurred Background</option>
+            </select>
           </div>
 
           <div class="card-actions">
-            <button class="btn btn-rerender btn-sm" id="btnRender_${clipId}" onclick="triggerReRender('${clipId}')">
-              🔄 Re-render this clip
+            <button class="btn btn-rerender" id="btnRender_${clipId}" onclick="triggerReRender('${clipId}')">
+              Re-render
             </button>
-            <a id="download_${clipId}" class="btn btn-download btn-sm" style="display: none;" download>📥 Download MP4</a>
+            <a id="download_${clipId}" class="btn btn-download" style="display: none;" download>Download MP4</a>
           </div>
 
           <details class="clip-transcript">
@@ -910,9 +410,15 @@
       const title = document.getElementById(`title_${clipId}`);
       if (title) title.textContent = `${idx + 1}. ${cand.title}`;
 
+      const chip = document.getElementById(`statusChip_${clipId}`);
+      if (chip) {
+        chip.textContent = status;
+        chip.className = `clip-status is-${status}`;
+      }
+
       const meta = document.getElementById(`meta_${clipId}`);
       if (meta) {
-        meta.textContent = `⏱ ${formatTime(cand.start)} - ${formatTime(cand.end)} in original • ${Math.round(cand.duration)}s long`;
+        meta.textContent = `${formatTime(cand.start)} - ${formatTime(cand.end)} in original · ${Math.round(cand.duration)}s long`;
       }
 
       const textEl = document.getElementById(`text_${clipId}`);
@@ -921,12 +427,13 @@
       const failed = document.getElementById(`failed_${clipId}`);
       const video = document.getElementById(`video_${clipId}`);
       const placeholder = document.getElementById(`placeholder_${clipId}`);
+      const placeholderText = document.getElementById(`placeholderText_${clipId}`);
       const download = document.getElementById(`download_${clipId}`);
       const renderBtn = document.getElementById(`btnRender_${clipId}`);
 
       if (failed) {
         failed.style.display = status === "failed" ? "block" : "none";
-        failed.textContent = `❌ Failed: ${cand.render_error || "render error"}`;
+        failed.textContent = `● Failed: ${cand.render_error || "render error"}`;
       }
 
       if (status === "completed" && cand.rendered_file) {
@@ -943,9 +450,9 @@
         }
       } else {
         if (video) video.style.display = "none";
-        if (placeholder) {
-          placeholder.style.display = "flex";
-          placeholder.textContent = status === "failed" ? "❌ Rendering failed" : "⏳ Rendering…";
+        if (placeholder) placeholder.style.display = "flex";
+        if (placeholderText) {
+          placeholderText.textContent = status === "failed" ? "Rendering failed" : "Rendering…";
         }
         if (download) download.style.display = "none";
       }
@@ -984,7 +491,13 @@
 
       const meta = document.getElementById(`meta_${clipId}`);
       if (meta) {
-        meta.innerHTML = `⏱ ${formatTime(cand.start)} - ${formatTime(cand.end)} in original • ${Math.round(cand.duration)}s long <span style="color:#38bdf8;">⚡ re-rendered in ${cand.last_render_seconds}s</span>`;
+        meta.innerHTML = `${formatTime(cand.start)} - ${formatTime(cand.end)} in original · ${Math.round(cand.duration)}s long <span style="color:#35674f;">· re-rendered in ${cand.last_render_seconds}s</span>`;
+      }
+
+      const chip = document.getElementById(`statusChip_${clipId}`);
+      if (chip) {
+        chip.textContent = "completed";
+        chip.className = "clip-status is-completed";
       }
 
       const video = document.getElementById(`video_${clipId}`);
@@ -1022,6 +535,7 @@
       applyFontSample();
       if (!fontStyleSelect) return;
 
+      setStateText(fontState, "Saving…", "is-saving");
       try {
         const resp = await fetch(`/api/jobs/${JOB_ID}/font-style`, {
           method: "POST",
@@ -1030,10 +544,14 @@
         });
         if (!resp.ok) {
           const err = await resp.json();
-          alert(`Could not save the font: ${err.detail || "Server error"}`);
+          setStateText(fontState, "Not saved", "is-error");
+          fontSample.title = err.detail || "server error";
+          return;
         }
+        setStateText(fontState, "Saved", "is-saved");
       } catch (e) {
         console.error("Font save error:", e);
+        setStateText(fontState, "Not saved", "is-error");
       }
     }
 
@@ -1067,6 +585,7 @@
       if (gradientControls) gradientControls.classList.toggle("is-hidden", style !== "gradient");
       if (splitControls) splitControls.classList.toggle("is-hidden", style !== "split");
       if (splitNote) splitNote.classList.toggle("is-hidden", style !== "split");
+      if (style !== "split") showSplitStatus("");
     }
 
     async function saveVideoSettings() {
@@ -1088,6 +607,7 @@
         split_divider: !!splitDividerInput?.checked
       };
 
+      setSaveState("Saving…", "is-saving");
       try {
         const resp = await fetch(`/api/jobs/${JOB_ID}/video-style`, {
           method: "POST",
@@ -1096,10 +616,15 @@
         });
         if (!resp.ok) {
           const err = await resp.json();
-          alert(`Could not save video style: ${err.detail || "Server error"}`);
+          setSaveState("Not saved", "is-error");
+          showSplitStatus(`Could not save the style: ${err.detail || "server error"}`, "error");
+          return;
         }
+        setSaveState("Saved", "is-saved");
       } catch (e) {
         console.error("Video style save error:", e);
+        setSaveState("Not saved", "is-error");
+        showSplitStatus("Could not save the video style. Is the server still running?", "error");
       }
     }
 
@@ -1123,7 +648,7 @@
     async function uploadBackground() {
       const picker = document.getElementById("splitUpload");
       if (!picker || !picker.files || !picker.files.length) {
-        alert("Pick a background clip first (.mp4, .webm or .mov).");
+        showSplitStatus("Pick a background clip first (.mp4, .webm or .mov).", "error");
         return;
       }
 
@@ -1134,7 +659,7 @@
         const resp = await fetch("/api/backgrounds/upload", { method: "POST", body: form });
         const body = await resp.json();
         if (!resp.ok) {
-          alert(`Could not add that background: ${body.detail || "Server error"}`);
+          showSplitStatus(`Could not add that background: ${body.detail || "server error"}`, "error");
           return;
         }
 
@@ -1146,10 +671,11 @@
           splitBackgroundSelect.value = body.name;
         }
         picker.value = "";
+        showSplitStatus(`Background added: ${body.name}`, "ok");
         changeVideoStyle();
       } catch (e) {
         console.error("Background upload error:", e);
-        alert("The background clip could not be uploaded.");
+        showSplitStatus("The background clip could not be uploaded.", "error");
       }
     }
 
@@ -1167,12 +693,18 @@
       const newStyle = styleSelect ? styleSelect.value : "blurred_background";
 
       if (isNaN(newStart) || isNaN(newEnd) || newEnd <= newStart) {
-        alert("Please specify a valid start and end time (end must be greater than start).");
+        showCardError(clipId, "Use a valid start and end time (end must be after start).");
         return;
       }
 
       renderBtn.disabled = true;
-      renderBtn.textContent = "⏳ Rendering...";
+      renderBtn.textContent = "Rendering…";
+
+      const chip = document.getElementById(`statusChip_${clipId}`);
+      if (chip) {
+        chip.textContent = "rendering";
+        chip.className = "clip-status is-rendering";
+      }
 
       try {
         const resp = await fetch(`/api/jobs/${JOB_ID}/clips/${clipId}/render`, {
@@ -1189,19 +721,22 @@
 
         if (!resp.ok) {
           const err = await resp.json();
-          alert(`Render failed: ${err.detail || "Server error"}`);
+          showCardError(clipId, `Render failed: ${err.detail || "server error"}`);
+          if (chip) {
+            chip.textContent = "failed";
+            chip.className = "clip-status is-failed";
+          }
           return;
         }
 
         const data = await resp.json();
         refreshCardAfterRender(clipId, data.candidate);
-
       } catch (e) {
         console.error("Re-render error:", e);
-        alert(`Network error during re-render: ${e.message}`);
+        showCardError(clipId, `Network error during re-render: ${e.message}`);
       } finally {
         renderBtn.disabled = false;
-        renderBtn.textContent = "🔄 Re-render this clip";
+        renderBtn.textContent = "Re-render";
       }
     }
 
@@ -1214,7 +749,7 @@
         line.className = "transcript-line";
         line.innerHTML = `
           <span class="time-badge">${formatTime(seg.start)} - ${formatTime(seg.end)}</span>
-          <span style="color: #e2e8f0;">${seg.text}</span>
+          <span>${seg.text}</span>
         `;
         transcriptBox.appendChild(line);
       });
@@ -1236,7 +771,7 @@
       document.getElementById("timeTotal").textContent = `${timing.total_processing_seconds || 0}s`;
 
       const ratio = timing.seconds_per_minute_video || 0;
-      document.getElementById("timingSpeedRatio").textContent = `⚡ Processing Rate: ${ratio}s per minute of video`;
+      document.getElementById("timingSpeedRatio").textContent = `${ratio}s per minute of video`;
     }
 
     // Load assets
@@ -1273,7 +808,7 @@
 
         const data = await res.json();
         jobStatusBadge.textContent = `Status: ${data.status}`;
-        jobStatusBadge.className = `status-badge ${data.status}`;
+        jobStatusBadge.className = `status-pill status-${data.status}`;
         jobProgressBar.style.width = `${data.progress_percent}%`;
         jobProgressText.textContent = data.progress_message;
 
@@ -1295,7 +830,7 @@
           clearInterval(pollInterval);
           errorMessage.textContent = data.error || "An unexpected error occurred.";
           errorBanner.style.display = "flex";
-          jobProgressBar.style.backgroundColor = "#ef4444";
+          jobProgressBar.style.backgroundColor = "#a94136";
         }
       } catch (err) {
         console.error("Status polling error:", err);

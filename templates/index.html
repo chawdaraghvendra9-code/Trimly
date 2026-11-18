@@ -3,61 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cliptor Clip Studio - Create Viral Shorts & Reels</title>
+  <title>Cliptor Clip Studio - Turn long videos into shorts</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <div class="app-container">
-    <header class="app-header">
-      <div class="logo">
-        <span class="logo-icon">✂️</span>
-        <h1>Cliptor Clip Studio</h1>
-      </div>
-      <p class="tagline">Turn long videos into 9:16 vertical shorts with burned-in subtitles</p>
-    </header>
+  <div class="shell">
+    <aside class="rail">
+      <a class="rail-brand" href="/" title="Cliptor" aria-label="Cliptor home">✂</a>
 
-    <main class="content-box">
-      <!-- Legal Notice & Disclaimer Banner -->
-      <div class="notice-banner">
-        <span class="notice-icon">⚠️</span>
-        <div class="notice-text">
-          <strong>Important:</strong> Only upload content you own or have permission to clip.
+      <nav class="rail-nav" aria-label="Add a video">
+        <a class="rail-icon is-active" id="railUpload" href="#addVideo" title="Add a video">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3h16v-3"/>
+          </svg>
+          <span class="is-hidden">Add a video</span>
+        </a>
+        <a class="rail-icon" id="railLink" href="#addVideo" title="Import from link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.5 13.5a4.5 4.5 0 0 0 6.4 0l2.1-2.1a4.5 4.5 0 0 0-6.4-6.4L11.5 6"/>
+            <path d="M13.5 10.5a4.5 4.5 0 0 0-6.4 0l-2.1 2.1a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>
+          </svg>
+          <span class="is-hidden">Import from link</span>
+        </a>
+      </nav>
+
+      <div class="rail-spacer"></div>
+    </aside>
+
+    <div class="panel">
+      <header class="panel-head">
+        <div class="panel-head-main">
+          <p class="eyebrow">Local video clipper</p>
+          <h1>Clip studio</h1>
+          <p class="sub">Upload a long video and get vertical 9:16 clips with burned-in captions.</p>
         </div>
-      </div>
+        <span class="chip">1080 × 1920</span>
+      </header>
 
-      <!-- Upload Form Section -->
-      <section class="upload-section">
-        <h2>1. Add Your Long Video</h2>
-        <p class="upload-subtext">Supported formats: MP4, MOV, MKV, WEBM (Max {{ max_file_size_mb }}MB, up to {{ max_video_minutes }} minutes)</p>
-
-        <!-- Layout Style Selection (shared by both upload modes) -->
-        <div class="crop-style-box">
-          <label for="cropStyleSelect" class="crop-style-label">
-            🎨 Vertical 9:16 Layout Style:
-          </label>
-          <select id="cropStyleSelect" name="crop_style" class="crop-style-select">
-            <option value="blurred_background" selected>
-              Blurred Background (Recommended: fits full horizontal video centered over blurred zoom)
-            </option>
-          </select>
+      <section class="card" id="addVideo">
+        <div class="card-head">
+          <div>
+            <h2>Add your long video</h2>
+            <p class="note">
+              MP4, MOV, MKV or WEBM · up to {{ max_file_size_mb }} MB / {{ max_video_minutes }} minutes
+            </p>
+          </div>
         </div>
 
-        <!-- Choose how to add the video -->
+        <!-- Legacy single-option field kept for the upload request. -->
+        <select id="cropStyleSelect" name="crop_style" class="is-hidden" tabindex="-1" aria-hidden="true">
+          <option value="blurred_background" selected>9:16 vertical</option>
+        </select>
+
         <div class="mode-tabs" role="tablist">
           <button type="button" class="mode-tab active" id="modeTabFile" role="tab" aria-selected="true">
-            📁 Upload a file
+            Upload a file
           </button>
           <button type="button" class="mode-tab" id="modeTabLink" role="tab" aria-selected="false">
-            🔗 Import from link
+            Import from link
           </button>
         </div>
 
         <!-- Mode 1: upload a file from this computer -->
         <div id="fileModePanel">
-          <form id="uploadForm" enctype="multipart/form-data">
+          <form id="uploadForm" enctype="multipart/form-data" data-max-size-mb="{{ max_file_size_mb }}">
             <div class="drop-zone" id="dropZone">
-              <div class="drop-zone-icon">📁</div>
-              <p class="drop-zone-title">Drag & drop your video here</p>
+              <span class="drop-zone-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/>
+                  <path d="M4 8.5 12 13l8-4.5M12 13v7"/>
+                </svg>
+              </span>
+              <p class="drop-zone-title">Drag &amp; drop your video here</p>
               <p class="drop-zone-subtitle">or click to browse from your computer</p>
               <input type="file" id="videoFileInput" name="video_file" accept=".mp4,.mov,.mkv,.avi,.webm" required>
               <div id="fileSelectionInfo" class="file-selection-info" style="display:none;"></div>
@@ -65,7 +82,7 @@
 
             <div class="upload-actions">
               <button type="submit" id="uploadBtn" class="btn btn-primary" disabled>
-                Upload & Start Processing
+                Upload &amp; start processing
               </button>
             </div>
           </form>
@@ -73,20 +90,24 @@
 
         <!-- Mode 2: import from a direct link, Google Drive or Dropbox -->
         <div id="linkModePanel" style="display: none;">
-          <label for="importUrlInput" class="import-label">Video link</label>
-          <input
-            type="url"
-            id="importUrlInput"
-            class="url-input"
-            placeholder="https://youtube.com/watch?v=...  or  https://example.com/video.mp4  or  a Drive / Dropbox link"
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <p class="field-hint">
-            YouTube, TikTok and Instagram video links, direct video file links (MP4, MOV, WEBM, MKV),
+          <div class="field">
+            <label for="importUrlInput">Video link</label>
+            <input
+              type="url"
+              id="importUrlInput"
+              class="url-input"
+              placeholder="https://youtube.com/watch?v=...  or  a direct MP4 link  or  a Drive / Dropbox link"
+              autocomplete="off"
+              spellcheck="false"
+            >
+          </div>
+          <p class="hint">
+            YouTube, TikTok and Instagram links, direct video files (MP4, MOV, WEBM, MKV),
             or public Google Drive / Dropbox share links. Other streaming sites are not supported.
           </p>
-          <p class="import-note">⚠️ Only use content you own or have permission to clip.</p>
+          <p class="note" style="margin-top:10px;">
+            Only use content you own or have permission to clip.
+          </p>
 
           <div class="upload-actions">
             <button type="button" id="importBtn" class="btn btn-primary">
@@ -95,7 +116,7 @@
           </div>
         </div>
 
-        <!-- Upload Progress & Status -->
+        <!-- Upload progress -->
         <div id="uploadProgressBox" class="progress-box" style="display:none;">
           <div class="progress-bar-container">
             <div id="uploadProgressBar" class="progress-bar" style="width: 0%;"></div>
@@ -103,44 +124,20 @@
           <p id="uploadStatusText" class="progress-text">Uploading video... 0%</p>
         </div>
 
-        <!-- Error Message Alert -->
+        <!-- Errors stay inline, next to the form -->
         <div id="errorMessageAlert" class="error-banner" style="display:none;">
-          <span class="error-icon">❌</span>
+          <span class="error-icon">●</span>
           <span id="errorMessageText"></span>
         </div>
+
+        <p class="disclaimer">Only upload content you own or have permission to clip.</p>
       </section>
 
-      <!-- How it Works Simple Steps -->
-      <section class="features-summary">
-        <h3>How Cliptor Works</h3>
-        <div class="steps-grid">
-          <div class="step-card">
-            <div class="step-num">1</div>
-            <h4>Upload</h4>
-            <p>Upload any MP4 or horizontal video up to 30 mins.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">2</div>
-            <h4>Transcribe & Find</h4>
-            <p>Whisper AI creates timestamps; smart suggestions find the best moments.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">3</div>
-            <h4>Preview & Tweak</h4>
-            <p>Review 5-8 clips, adjust start/end boundaries cleanly.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">4</div>
-            <h4>Export 9:16</h4>
-            <p>Download vertical clips with animated 2-3 word captions.</p>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="app-footer">
-      <p>Cliptor Clip Studio • Local & Private Video Clipper</p>
-    </footer>
+      <footer class="app-footer">
+        <span>Cliptor Clip Studio</span>
+        <span>Upload · Transcribe · Export 9:16</span>
+      </footer>
+    </div>
   </div>
 
   <script src="/static/app.js"></script>
