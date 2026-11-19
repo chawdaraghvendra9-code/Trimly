@@ -898,11 +898,15 @@ def test_import_job_hands_valid_video_to_pipeline(monkeypatch):
 # HTTP API and page
 # ---------------------------------------------------------------------------
 
-def test_home_page_offers_import_from_link_and_shows_note():
+def test_home_page_offers_import_from_link_and_shows_note(monkeypatch):
+    monkeypatch.setattr(app_module, "ENABLE_YOUTUBE_IMPORT", False)
     response = client.get("/")
     assert response.status_code == 200
     assert "Import from link" in response.text
-    assert "Only use content you own or have permission to clip." in response.text
+    assert "Only upload content you own or have permission to clip." in response.text
+    # Streaming sites are off by default, so the page must not advertise them.
+    assert "YouTube" not in response.text
+    assert "turned off on this copy" in response.text
 
 
 def test_import_endpoint_rejects_unsupported_streaming_site():
@@ -914,6 +918,7 @@ def test_import_endpoint_rejects_unsupported_streaming_site():
 
 def test_import_endpoint_accepts_youtube_link(monkeypatch):
     """A YouTube link starts a job straight away; the download runs in the background."""
+    monkeypatch.setattr(app_module, "ENABLE_YOUTUBE_IMPORT", True)
     # No real DNS lookup, runtime check or download during tests.
     monkeypatch.setattr(app_module, "validate_public_url", lambda url: None)
     monkeypatch.setattr(app_module, "check_ytdlp_runtime", lambda: None)
@@ -947,8 +952,23 @@ def test_import_endpoint_accepts_youtube_link(monkeypatch):
             shutil.rmtree(JOBS_DIR / name, ignore_errors=True)
 
 
+def test_import_endpoint_rejects_streaming_site_when_disabled(monkeypatch):
+    """The public default is OFF: no job is created and the message is friendly."""
+    monkeypatch.setattr(app_module, "ENABLE_YOUTUBE_IMPORT", False)
+    before = {p.name for p in JOBS_DIR.iterdir() if p.is_dir()}
+    response = client.post(
+        "/api/import-link", json={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
+    )
+    after = {p.name for p in JOBS_DIR.iterdir() if p.is_dir()}
+
+    assert response.status_code == 400
+    assert "turned off on this copy" in response.json()["detail"]
+    assert before == after, "a disabled import must not create a job"
+
+
 def test_import_endpoint_shows_runtime_install_hint(monkeypatch):
     """Missing Node 22+ / yt_dlp_ejs must be explained before a job is created."""
+    monkeypatch.setattr(app_module, "ENABLE_YOUTUBE_IMPORT", True)
     monkeypatch.setattr(app_module, "validate_public_url", lambda url: None)
     monkeypatch.setattr(
         app_module,

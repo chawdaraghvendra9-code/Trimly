@@ -1,0 +1,7 @@
+* text=auto
+
+# Internal handoff notes and test/demo media never belong in a public release.
+AGENTS.md export-ignore
+/sample_video.mp4 export-ignore
+/jobs_data export-ignore
+/docs/*.mp4 export-ignore

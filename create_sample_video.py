@@ -31,11 +31,11 @@ def get_ffmpeg_path() -> str:
 def generate_sample_speech_audio(output_wav: Path):
     """Generates a WAV file with clear English speech using PowerShell speech synthesis."""
     speech_text = (
-        "Welcome to Cliptor Clip Studio. "
+        "Welcome to Trimly Clip Studio. "
         "Content creation is all about telling engaging stories in a very short amount of time. "
         "When you make short vertical videos, you want to capture the audience's attention right in the first three seconds. "
         "A strong hook makes people stop scrolling and listen to what you have to say. "
-        "Cliptor helps you find those key moments automatically, crop them to 9 by 16, and add dynamic captions."
+        "Trimly helps you find those key moments automatically, crop them to 9 by 16, and add dynamic captions."
     )
     
     ps_script = f"""

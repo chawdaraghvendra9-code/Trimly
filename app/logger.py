@@ -1,17 +1,15 @@
 """
-Central logging configuration for Cliptor.
-Logs to both stdout (terminal) and to a persistent file (cliptor.log).
+Central logging configuration for Trimly.
+Logs to both stdout (terminal) and to a persistent file (trimly.log).
 """
 import logging
 import sys
-from pathlib import Path
-from app.config import BASE_DIR
-
-LOG_FILE = BASE_DIR / "cliptor.log"
+from app.paths import LOG_FILE, ensure_user_dirs
 
 def setup_logger() -> logging.Logger:
     """Configures the root/app logger with console and file handlers."""
-    logger = logging.getLogger("cliptor")
+    ensure_user_dirs()  # in case the logger is imported before config
+    logger = logging.getLogger("trimly")
     logger.setLevel(logging.INFO)
 
     # Avoid adding duplicate handlers if already configured
@@ -30,7 +28,7 @@ def setup_logger() -> logging.Logger:
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    # 2. File handler (writes to cliptor.log)
+    # 2. File handler (writes to trimly.log)
     file_handler = logging.FileHandler(LOG_FILE, mode="a", encoding="utf-8")
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)

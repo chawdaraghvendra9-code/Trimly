@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Studio - Cliptor Clip Studio</title>
+  <title>Studio - Trimly Clip Studio</title>
   <link rel="stylesheet" href="/static/style.css">
   <style>
     /* Caption fonts are loaded straight from the project's fonts/ folder. */
@@ -19,7 +19,7 @@
 <body>
   <div class="shell">
     <aside class="rail">
-      <a class="rail-brand" href="/" title="Cliptor" aria-label="Cliptor home">✂</a>
+      <a class="rail-brand" href="/" title="Trimly" aria-label="Trimly home">✂</a>
       <div class="rail-spacer"></div>
       <a class="rail-icon" href="/" title="Back to upload">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -48,6 +48,15 @@
         </div>
       </header>
 
+      {% if not ai_enabled %}
+      <div class="notice-banner" role="status">
+        <strong>Basic suggestions mode.</strong>
+        No AI key is set, so this project's highlights come from audio loudness and
+        sentence boundaries. Add <code>LLM_API_KEY</code> to <code>.env</code> and
+        start a new project for smarter picks.
+      </div>
+      {% endif %}
+
       <div id="processingBox" class="progress-card">
         <div class="progress-bar-container">
           <div id="jobProgressBar" class="progress-bar" style="width: {{ job.progress_percent }}%;"></div>
@@ -61,7 +70,7 @@
           <strong>Processing error:</strong>
           <span id="errorMessage">{{ job.error or '' }}</span>
           <p class="hint" style="color:#a94136;">
-            Technical details were saved to <code>cliptor.log</code> and printed to the terminal.
+            Technical details were saved to <code>trimly.log</code> and printed to the terminal.
           </p>
         </div>
       </div>
@@ -232,7 +241,7 @@
       </section>
 
       <footer class="app-footer">
-        <span>Cliptor Clip Studio</span>
+        <span>Trimly Clip Studio</span>
         <span>Local &amp; private video clipper</span>
       </footer>
     </div>

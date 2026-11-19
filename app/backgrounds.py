@@ -13,13 +13,13 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger("cliptor")
+from app.paths import BACKGROUNDS_DIR
+
+logger = logging.getLogger("trimly")
 
 BACKGROUND_EXTENSIONS = {".mp4", ".webm", ".mov"}
 MAX_BACKGROUND_SECONDS = 60.0
 MAX_BACKGROUND_BYTES = 100 * 1024 * 1024
-
-BACKGROUNDS_DIR = Path(__file__).resolve().parent.parent / "backgrounds"
 
 
 def ensure_backgrounds_dir() -> Path:

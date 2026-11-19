@@ -16,15 +16,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.config import (
-    BASE_DIR,
     JOBS_DIR,
     MAX_FILE_SIZE_MB,
     MAX_FILE_SIZE_BYTES,
     MAX_VIDEO_MINUTES,
     ALLOWED_EXTENSIONS,
     WHISPER_MODEL,
-    DEFAULT_CROP_STYLE
+    DEFAULT_CROP_STYLE,
+    LLM_API_KEY,
+    ENABLE_YOUTUBE_IMPORT
 )
+from app.paths import FONTS_DIR, STATIC_DIR, TEMPLATES_DIR
 from app.logger import logger
 from app.downloader import (
     LinkError,
@@ -95,37 +97,40 @@ async def lifespan(app: FastAPI):
     Runs on server startup and shutdown.
     Verifies that FFmpeg is installed and accessible.
     """
-    logger.info("Initializing Cliptor Clip Studio...")
+    logger.info("Initializing Trimly Clip Studio...")
     try:
         ffmpeg_path = verify_ffmpeg_on_startup()
         logger.info(f"FFmpeg is ready at: {ffmpeg_path}")
         logger.info(f"Whisper Model configured: '{WHISPER_MODEL}' (compute_type=int8, device=cpu)")
-        runtime_problem = check_ytdlp_runtime()
-        if runtime_problem:
-            logger.error(runtime_problem)
-            print(runtime_problem)
+        if ENABLE_YOUTUBE_IMPORT:
+            runtime_problem = check_ytdlp_runtime()
+            if runtime_problem:
+                logger.error(runtime_problem)
+                print(runtime_problem)
+            else:
+                logger.info("Link import runtime ready (Node.js 22+ and yt_dlp_ejs).")
         else:
-            logger.info("Link import runtime ready (Node.js 22+ and yt_dlp_ejs).")
+            logger.info("Streaming-site imports are disabled (ENABLE_YOUTUBE_IMPORT=false).")
     except Exception as e:
         logger.error(f"FFmpeg startup verification failed: {e}")
     yield
-    logger.info("Cliptor Clip Studio shutting down.")
+    logger.info("Trimly Clip Studio shutting down.")
 
 app = FastAPI(
-    title="Cliptor Clip Studio",
+    title="Trimly Clip Studio",
     description="Turn long videos into 9:16 vertical clips for Reels, Shorts, and TikTok",
-    version="0.5.0",
+    version="1.0.0",
     lifespan=lifespan
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+# Mount static files (resolved from the package when installed)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Caption fonts are served so the results page can show each name in its own font.
-app.mount("/fonts", StaticFiles(directory=str(BASE_DIR / "fonts")), name="fonts")
+app.mount("/fonts", StaticFiles(directory=str(FONTS_DIR)), name="fonts")
 
 # Setup Jinja2 templates
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -138,7 +143,10 @@ async def home(request: Request):
             "max_file_size_mb": MAX_FILE_SIZE_MB,
             "max_video_minutes": MAX_VIDEO_MINUTES,
             "whisper_model": WHISPER_MODEL,
-            "default_crop_style": DEFAULT_CROP_STYLE
+            "default_crop_style": DEFAULT_CROP_STYLE,
+            # Show the "basic suggestions" banner when no AI key is set.
+            "ai_enabled": bool(LLM_API_KEY),
+            "youtube_import_enabled": ENABLE_YOUTUBE_IMPORT
         }
     )
 
@@ -238,6 +246,15 @@ def import_from_link(req: ImportLinkRequest):
     # (This runs again for every redirect during the actual download.)
     try:
         direct_url, provider = convert_share_link(raw_url)
+        # Streaming-site imports are opt-in for the public build.
+        if provider in {"youtube", "tiktok", "instagram"} and not ENABLE_YOUTUBE_IMPORT:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "YouTube, TikTok and Instagram imports are turned off on this copy. "
+                    "Use a direct video file link or a public Google Drive / Dropbox link."
+                ),
+            )
         validate_public_url(direct_url)
     except LinkError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -463,7 +480,7 @@ async def upload_background(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Use an .mp4, .webm or .mov background clip.")
 
     with tempfile.NamedTemporaryFile(
-        delete=False, suffix=Path(filename).suffix.lower(), prefix="cliptor_bg_"
+        delete=False, suffix=Path(filename).suffix.lower(), prefix="trimly_bg_"
     ) as temporary:
         temporary_path = Path(temporary.name)
 
@@ -512,7 +529,7 @@ async def download_all_clips(job_id: str):
         return FileResponse(
             path=str(zip_path),
             media_type="application/zip",
-            filename=f"cliptor_{job_id}_all_clips.zip"
+            filename=f"trimly_{job_id}_all_clips.zip"
         )
     except Exception as e:
         logger.exception(f"Error generating ZIP archive: {e}")
@@ -531,6 +548,7 @@ async def view_job(request: Request, job_id: str):
         name="editor.html",
         context={
             "job": job_data,
+            "ai_enabled": bool(LLM_API_KEY),
             "font_styles": list_font_styles(),
             "current_font_style": job_data.get("font_style", DEFAULT_FONT_STYLE),
             "default_font_style": DEFAULT_FONT_STYLE,

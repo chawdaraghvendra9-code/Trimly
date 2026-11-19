@@ -700,7 +700,7 @@ def create_all_clips_zip(job_id: str) -> Path:
     Creates a zip archive containing all rendered clip MP4 files for the job.
     """
     job_dir = get_job_dir(job_id)
-    zip_path = job_dir / f"cliptor_{job_id}_clips.zip"
+    zip_path = job_dir / f"trimly_{job_id}_clips.zip"
 
     mp4_files = sorted(job_dir.glob("clip_*.mp4"))
     if not mp4_files:

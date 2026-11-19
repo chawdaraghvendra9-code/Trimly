@@ -18,9 +18,9 @@ try:
 except Exception:  # pragma: no cover - fontTools is in requirements.txt
     TTFont = None
 
-# app/fonts.py -> project root
-BASE_DIR = Path(__file__).resolve().parent.parent
-FONTS_DIR = BASE_DIR / "fonts"
+# Fonts live at the repo root in development and inside the package when
+# installed. paths decides which one, so the current folder never matters.
+from app.paths import FONTS_DIR
 
 # The current caption look, kept as "Plain".
 PLAIN_STYLE: Dict[str, Any] = {

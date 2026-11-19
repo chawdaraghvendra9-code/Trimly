@@ -1,206 +1,285 @@
-# Cliptor Clip Studio
+# Trimly Clip Studio
 
-**Turn a long video into vertical 9:16 clips with burned-in captions — on your own machine.**
+**Turn a long video into vertical 9:16 clips with burned-in captions — on your own PC.**
 
-Cliptor takes a podcast, interview or stream, transcribes it with Whisper, asks an LLM to find the best self-contained moments, and renders each one as a short with animated captions, a hook title and a chosen background style.
+Trimly transcribes a podcast, interview or stream with Whisper, finds the best
+self-contained moments, and renders each one as a short with animated captions,
+an optional hook title and a background style you choose. No account, no
+watermark and no per-minute billing.
 
-No uploads to a clipping service. No watermark. No per-minute billing. Your video never leaves your PC; only transcript text goes to an LLM if you configure one.
+**Your video and audio stay on your computer.** Only the transcript text is sent
+to an AI service, and only when you configure an API key. With no key, Trimly
+runs in **Basic suggestions mode** completely offline.
 
-<!--
-  Add a 15-20 second screen recording here once you have one, then delete this comment:
-  ![Cliptor demo](docs/demo.gif)
--->
+> Only use content you own or have permission to clip.
 
-## Features
+Feedback and questions: [Telegram group](https://t.me/+d6DQbGgQaW1jYmI1)
 
-- **Local transcription** with faster-whisper (no audio upload)
-- **Smart highlight picking** in two passes (chapters, then 5-10 self-contained candidates, top 8 rendered)
-- **Offline fallback** if no LLM key is set — audio peaks + sentence boundaries
-- **Vertical 1080 × 1920 output** with an ASS caption file and animated word highlighting
-- **Five video styles** — Smart fit, Split screen, Blurred, Solid, Gradient
-- **Split screen**: clipped speaker on top, your own looping background clip below, captions at the seam
-- **Nine caption fonts**, saved per project
-- **Per-clip editing**: nudge start/end, change the hook, re-render one clip without touching the others
-- **Import from a link**: YouTube, TikTok, Instagram, direct files, public Google Drive / Dropbox links (via yt-dlp)
-- **Crash-safe rendering**: ffmpeg args as lists, per-clip timeout, per-clip logs, status per clip
+---
+
+## Screenshots
+
+> 📷 **Placeholder:** add `docs/screenshot-upload.png` here before publishing.
+>
+> 📷 **Placeholder:** add `docs/screenshot-studio.png` here before publishing.
+>
+> 📷 **Placeholder:** add `docs/screenshot-export.png` here before publishing.
+
+Suggested shots: the upload page, the studio with clip cards, and a finished
+9:16 clip with captions.
+
+---
 
 ## Requirements
 
-- **Python 3.10 – 3.12**
-- **FFmpeg** and **ffprobe** on your `PATH`
-- ~1 GB free disk for the Whisper model and job files (the first transcription downloads the model)
-- Windows 10/11, macOS or Linux
+- **Windows 10 or 11** (64-bit)
+- **Python 3.11, 3.12 or 3.13** (the `uv` steps below fetch Python 3.12 for you)
+- **FFmpeg + ffprobe** on your `PATH`
+- About **1 GB free disk** for the Whisper model and temporary job files
+- Internet access on first run to download the Whisper model
 
 Optional:
 
-- An OpenAI-compatible LLM key (OpenRouter free models work well) for much better highlight picking
-- `cookies.txt` for sites that block anonymous downloads
+- An **OpenRouter** (or other OpenAI-compatible) API key for smarter highlights
+- **Node.js 22+** only if you enable streaming-site imports (`ENABLE_YOUTUBE_IMPORT`)
 
-## Quick start (Windows)
+FFmpeg is **not** bundled with Trimly. It is installed separately on your PC.
+
+---
+
+## Install as a command-line app (uv, recommended)
+
+This installs `trimly` as a normal command you can run from any folder.
+Replace `USERNAME` with the GitHub account that hosts this repository.
 
 ```powershell
-git clone https://github.com/chawdaraghvendra9-code/Cliptor.git
-cd Cliptor
+winget install astral-sh.uv
+winget install Gyan.FFmpeg
+uv tool install --python 3.12 git+https://github.com/USERNAME/trimly.git
+trimly
+```
 
-py -m venv venv
+The last command starts the app on `http://127.0.0.1:8000` and opens your
+browser. Keep the terminal window open while you work; press `Ctrl+C` to stop.
+
+First run downloads the Whisper speech model once (there is a progress bar).
+After that, Trimly works offline unless you add an AI key.
+
+Useful commands:
+
+```powershell
+trimly                 # start on port 8000
+trimly --port 8001     # use another port (the next free one if it is busy)
+trimly setup           # save an optional OpenRouter API key and model list
+trimly doctor          # check Python, FFmpeg, the AI key and the Whisper model
+trimly --version       # print the version
+```
+
+Update later:
+
+```powershell
+uv tool upgrade trimly
+```
+
+If `trimly` is not found after installing, add uv's tool folder to your PATH
+once and open a new terminal:
+
+```powershell
+uv tool update-shell
+```
+
+### Alternative: pipx
+
+```powershell
+py -3.12 -m pip install --user pipx
+py -3.12 -m pipx ensurepath
+pipx install --python 3.12 "git+https://github.com/USERNAME/trimly.git"
+trimly
+```
+
+Update with `pipx upgrade trimly`, or reinstall with
+`pipx reinstall --python 3.12 trimly`.
+
+### Where installed builds keep files
+
+Nothing is written inside the installed package folder.
+
+| Item | Location |
+| --- | --- |
+| Settings | `%APPDATA%\Trimly\config.env` |
+| Jobs, uploads, rendered clips | `%LOCALAPPDATA%\Trimly\jobs_data` |
+| Logs (`trimly.log`, `logs\clip_XX.log`) | `%LOCALAPPDATA%\Trimly` and `...\logs` |
+| Whisper models | `%LOCALAPPDATA%\Trimly\models` |
+| Split-screen background clips | `%LOCALAPPDATA%\Trimly\backgrounds` |
+
+Environment variables override `config.env`, so `LLM_API_KEY=...` in your
+terminal always wins. `TRIMLY_DATA_DIR` and `TRIMLY_CONFIG_FILE` can move the
+folders if you need to.
+
+---
+
+## Install from a ZIP (no command line)
+
+1. Install Python 3.12 from <https://www.python.org/downloads/> and tick
+   **"Add python.exe to PATH"**. (3.11 and 3.13 also work.)
+2. Download and unzip the Trimly release folder.
+3. Double-click **`setup.bat`**. It will:
+   - check for Python 3.11–3.13 through the `py` launcher
+   - create a `venv\` folder and install `requirements.txt`
+   - check for FFmpeg and offer `winget install Gyan.FFmpeg`
+   - ask for an OpenRouter API key (optional — press Enter to skip)
+4. Double-click **`run.bat`**. The browser opens at
+   <http://127.0.0.1:8000>.
+
+Keep the black command window open while you use Trimly. Press `Ctrl+C` there
+to stop the server.
+
+> 📷 **Screenshot placeholder:** `docs/screenshot-setup.png`
+
+### Manual install from the source folder (advanced)
+
+```powershell
+py -3.12 -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
 copy .env.example .env
-winget install Gyan.FFmpeg        # skip if `ffmpeg -version` already works
-
+winget install Gyan.FFmpeg   # skip if ffmpeg -version already works
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open <http://127.0.0.1:8000>.
+Running from the source folder keeps the old behaviour: data stays in
+`jobs_data\`, `logs\` and `backgrounds\`, and settings are read from `.env`.
 
-## Quick start (macOS / Linux)
+---
 
-```bash
-git clone https://github.com/chawdaraghvendra9-code/Cliptor.git
-cd Cliptor
+## How to use
 
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+1. **Add a video** — drag a file onto the upload box or click to browse.
+   Supported: MP4, MOV, MKV, AVI, WEBM.
+2. **Or import from a link** — direct MP4/MOV/WEBM/MKV links and public Google
+   Drive or Dropbox share links work out of the box. Streaming sites are off by
+   default (see `ENABLE_YOUTUBE_IMPORT`).
+3. **Wait for processing** — Trimly extracts audio, transcribes it, suggests
+   clips and renders each one. Processing takes roughly as long as the video.
+4. **Review the clips** — in the studio you can nudge start/end times, change the
+   hook title, pick a caption font and choose a video style.
+5. **Download** — grab one clip or all clips as a ZIP.
 
-cp .env.example .env
-brew install ffmpeg               # Debian/Ubuntu: sudo apt install ffmpeg
+The first transcription downloads the Whisper model once. Later jobs are faster.
 
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+### Basic suggestions mode
+
+If `LLM_API_KEY` is empty, Trimly still works: it picks clips from audio
+loudness and natural sentence boundaries and shows a banner in the app. Add a
+key to `.env` for much better highlights:
+
+```env
+LLM_API_KEY=sk-or-...
+LLM_BASE_URL=https://openrouter.ai/api/v1
+LLM_MODEL=meta-llama/llama-3.3-70b-instruct:free
 ```
+
+Restart Trimly after changing the settings. Installed builds can save the key
+for you with `trimly setup`; the source/ZIP build edits `.env`.
+
+---
+
+## Privacy
+
+- Uploaded videos, extracted audio, transcripts and rendered clips stay in the
+  local `jobs_data\` folder (`%LOCALAPPDATA%\Trimly\jobs_data` when installed).
+  Nothing is uploaded to a Trimly server.
+- **Only the transcript text is sent to the AI service you choose**, and only
+  when `LLM_API_KEY` is set. The video and audio never leave your PC.
+- With no key, no transcript leaves your PC at all.
+- Link imports contact the site you paste (and Google Drive / Dropbox when used).
+- There is no analytics, no account and no cloud storage.
+
+Trimly's local logs (`trimly.log`, `logs\clip_XX.log`) are only on your machine.
+
+---
+
+## Content note
+
+Only upload, download and clip content you own or have permission to clip.
+Respect copyright, platform terms and other people's privacy. You are
+responsible for what you publish.
+
+---
 
 ## Configuration
 
-Settings live in `.env` (copied from `.env.example`). Everything has a working default.
+All settings live in `.env` in the source/ZIP build, or in
+`%APPDATA%\Trimly\config.env` when installed (`trimly setup` writes it). Every
+value has a working default, so an empty file still runs. Environment variables
+override the file.
 
-| Variable | Default | What it does |
+| Setting | Default | What it does |
 | --- | --- | --- |
-| `LLM_API_KEY` | _(empty)_ | API key for highlight picking. Empty = offline fallback |
-| `LLM_BASE_URL` | `https://api.openai.com/v1` | Any OpenAI-compatible endpoint (OpenRouter, Groq, LocalAI) |
-| `LLM_MODEL` | `gpt-4o-mini` | Model used for chapter + clip selection |
-| `LLM_MODELS` | _(same)_ | Comma-separated fallback list tried when a model is slow or rate limited |
-| `WHISPER_MODEL` | `base` | `tiny` = fastest, `small`/`medium` = more accurate |
+| `LLM_API_KEY` | _(empty)_ | AI key. Empty = Basic suggestions mode |
+| `LLM_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint |
+| `LLM_MODEL` | `meta-llama/llama-3.3-70b-instruct:free` | Model used for highlight picking |
+| `LLM_MODELS` | _(same as LLM_MODEL)_ | Reserved; only `LLM_MODEL` is used today |
+| `LLM_TIMEOUT` | `60` | Reserved; request timeout is fixed in code |
+| `WHISPER_MODEL` | `base` | `tiny` fastest, `small`/`medium` more accurate |
+| `TRANSCRIPTION_MODE` | `local` | `local` only; hosted mode is not implemented yet |
+| `TRANSCRIPTION_API_BASE` | _(LLM base URL)_ | Reserved for future hosted transcription |
+| `TRANSCRIPTION_API_KEY` | _(LLM key)_ | Reserved for future hosted transcription |
+| `TRANSCRIPTION_MODEL` | `whisper-1` | Reserved for future hosted transcription |
 | `MIN_CLIP_SECONDS` | `20` | Shortest clip |
-| `MAX_CLIP_SECONDS` | `60` | Longest clip |
+| `PREFERRED_MIN_SECONDS` | `30` | Preferred lower bound |
+| `PREFERRED_MAX_SECONDS` | `90` | Preferred upper bound |
+| `MAX_CLIP_SECONDS` | `120` | Hard maximum clip length |
 | `MAX_VIDEO_MINUTES` | `30` | Reject longer source videos |
-| `MAX_FILE_SIZE_MB` | `1000` | Upload limit |
-| `YTDLP_MAX_HEIGHT` | `720` | Max download height for link imports |
-| `RENDER_TIMEOUT_SECONDS` | `300` | Base per-clip ffmpeg timeout (scales with clip length) |
+| `MAX_FILE_SIZE_MB` | `1000` | Upload / download limit |
+| `DEFAULT_CROP_STYLE` | `blurred_background` | Default vertical layout |
+| `RENDER_TIMEOUT_SECONDS` | `300` | Base ffmpeg timeout per clip |
+| `ENABLE_YOUTUBE_IMPORT` | `false` | Allow YouTube/TikTok/Instagram links |
+| `YTDLP_MAX_HEIGHT` | `720` | Max height for streaming imports |
+| `YTDLP_TIMEOUT_SECONDS` | `1800` | Max seconds per link download |
+| `YTDLP_COOKIES_FILE` | _(empty)_ | Optional cookies.txt for blocked sites |
+| `YTDLP_COOKIES_FROM_BROWSER` | _(empty)_ | Optional browser cookie source |
 
-For OpenRouter, set:
+> Warning: do not point cookie settings at your main personal Google account.
+> Use a throwaway account if a site asks you to prove you are not a bot.
 
-```env
-LLM_BASE_URL=https://openrouter.ai/api/v1
-LLM_MODEL=meta-llama/llama-3.3-70b-instruct:free
-LLM_API_KEY=sk-or-...
-```
-
-## How it works
-
-```
-upload / link
-   ↓
-ffprobe validation
-   ↓
-audio extract (ffmpeg)
-   ↓
-Whisper transcription with word timestamps
-   ↓
-pass 1: chapters  →  pass 2: 5-10 clip candidates
-   ↓
-caption .ass + ffmpeg filter graph per clip
-   ↓
-9:16 MP4 clips in jobs_data/<job_id>/
-```
-
-## Video styles
-
-| Style | What you get |
-| --- | --- |
-| **Smart fit** (default) | Speaker cropped to 4:5 / 1:1 / 3:4, face-centered static crop, rounded corners, soft shadow, optional slow punch-in, blurred/solid/gradient fill |
-| **Split screen** | Speaker clip on top (~58%), your looping background clip below, captions at the seam, optional divider line |
-| **Blurred** | Whole clip scaled up and blurred behind a centered crop |
-| **Solid** | Chosen color behind the clip |
-| **Gradient** | Two-color gradient behind the clip |
-
-The style is saved per project and applied when you re-render a clip.
-
-### Split screen backgrounds
-
-Put your own `.mp4`, `.webm` or `.mov` files in `backgrounds/`, or upload them from the studio page. Limits: **60 seconds** and **100 MB** per file; files are validated with ffprobe and looped to the clip length.
-
-The folder is gitignored, so no stock footage ships with the repo.
-
-> Only use background footage you own or that has a licence allowing reuse.
-
-## Captions
-
-Nine fonts ship in `fonts/` (Anton, Bangers, Bebas Neue, Luckiest Guy, Montserrat ExtraBold, Oswald Bold, Permanent Marker, Press Start 2P, Rubik Black), plus the plain default. Each has its licence in `fonts/licenses/` — all OFL or free-for-use; check before redistributing.
-
-Captions are generated as an escaped `.ass` file per clip, with word-level highlighting for the tuned fonts.
-
-## Importing from a link
-
-Supported: YouTube, TikTok, Instagram, direct video URLs (MP4/MOV/WEBM/MKV), public Google Drive and Dropbox share links. Downloads run through `yt-dlp`; other streaming sites are not supported.
-
-If a site asks you to confirm you are not a bot, export a throwaway `cookies.txt` and set `YTDLP_COOKIES_FILE`. Do **not** point it at your personal Google account.
-
-> Only download and clip content you own or have permission to use.
-
-## Project structure
-
-```
-app/
-  main.py           FastAPI routes, page rendering, validation
-  jobs.py           job state, pipeline orchestration, render options
-  video.py          ffmpeg filter graphs, all video styles, probing
-  backgrounds.py    split-screen background scan/validate/store
-  faces.py          Haar-cascade face detection for Smart fit
-  transcription.py  faster-whisper wrapper
-  highlights.py     two-pass LLM selection + offline fallback
-  subtitles.py      ASS caption generation
-  fonts.py          font discovery and per-font tuning
-  snapping.py       clip boundary snapping
-  downloader.py     yt-dlp link import
-templates/          Jinja pages (upload + studio)
-static/             stylesheet and upload JS
-fonts/              bundled caption fonts + licences
-tests/              pytest suite
-jobs_data/          per-job files (gitignored)
-backgrounds/        your split-screen clips (gitignored)
-logs/               per-clip ffmpeg logs (gitignored)
-```
-
-## Tests
-
-```powershell
-python -m pytest -q
-```
-
-140+ tests, including real ffmpeg renders of synthetic backgrounds (1080×1920, H.264, audio stream present). Expect about 10 minutes on a laptop.
+---
 
 ## Troubleshooting
 
 | Problem | Fix |
 | --- | --- |
-| `ffprobe was not found` | Install FFmpeg and reopen the terminal (`winget install Gyan.FFmpeg`) |
-| First transcription is slow | The Whisper model downloads once; later runs are much faster |
-| Highlights are weak | Add an `LLM_API_KEY` (OpenRouter free tier is enough) |
-| `401` / `403` from the LLM | Wrong key, base URL or model name in `.env` |
-| Port 8000 already in use | `--port 8001`, then open `http://127.0.0.1:8001` |
-| A clip fails to render | Read `logs/clip_XX.log`; the exact ffmpeg command is logged |
-| Split screen is black below | No background found — add a file in `backgrounds/` or pick "No clip (dark)" |
+| **`trimly` is not recognized** | Close and reopen the terminal, or run `uv tool update-shell` (pipx: `pipx ensurepath`). Check with `uv tool list`. |
+| **Python 3.11–3.13 is missing** | Install Python 3.12 from python.org, or reinstall with `uv tool install --python 3.12 --force git+https://github.com/USERNAME/trimly.git`. |
+| **`ffmpeg` / `ffprobe` was not found** | Run `winget install Gyan.FFmpeg`, then open a new terminal. `trimly doctor` shows the exact status. |
+| **Port 8000 is already in use** | Close the other Trimly window, or start with `trimly --port 8001` (it also picks the next free port automatically). |
+| **First transcription is very slow or the model download fails** | `trimly doctor` checks the model. It downloads once (needs internet); `WHISPER_MODEL=tiny` is the fastest. |
+| **A clip fails to render, or "No speech detected"** | Open `%LOCALAPPDATA%\Trimly\logs\clip_XX.log` (source build: `logs\clip_XX.log`) for the ffmpeg error. Make sure the video has speech and `ffmpeg -version` works. |
 
-## Roadmap
+Still stuck? Ask in the [Telegram group](https://t.me/+d6DQbGgQaW1jYmI1).
 
-- One-click installer / desktop build
-- Hosted demo (read-only) for people who do not want to install anything
-- Auto-reframe with speaker tracking instead of a static crop
-- Batch export presets per platform
+---
 
-## Notes
+## Project structure
 
-- Keep videos under the configured limit; 4K sources are downscaled, not rejected.
-- `jobs_data/`, `logs/`, `backgrounds/` and `.env` are gitignored — they never get pushed.
-- This is a local tool: there is no account, no cloud storage and no analytics.
+```
+pyproject.toml       package metadata, `trimly` command, bundled assets
+setup.bat            Windows first-time setup (ZIP build)
+run.bat              start the local server and open the browser (ZIP build)
+app/                 FastAPI routes, CLI, job runner, ffmpeg, transcription, highlights
+app/cli.py           trimly / trimly setup / trimly doctor
+app/paths.py         source vs installed paths (assets, jobs, logs, models)
+templates/           upload page and studio page
+static/              stylesheet and upload JavaScript
+fonts/               bundled caption fonts + licences
+tests/               pytest suite (developers)
+jobs_data/           local job files in source mode (gitignored, never published)
+logs/                per-clip ffmpeg logs in source mode (gitignored)
+```
+
+---
+
+## License
+
+MIT. See `LICENSE`. Bundled fonts and dependencies keep their own licences; see
+`THIRD_PARTY_NOTICES.md`. FFmpeg is not bundled.

@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cliptor Clip Studio - Turn long videos into shorts</title>
+  <title>Trimly Clip Studio - Turn long videos into shorts</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <div class="shell">
     <aside class="rail">
-      <a class="rail-brand" href="/" title="Cliptor" aria-label="Cliptor home">✂</a>
+      <a class="rail-brand" href="/" title="Trimly" aria-label="Trimly home">✂</a>
 
       <nav class="rail-nav" aria-label="Add a video">
-        <a class="rail-icon is-active" id="railUpload" href="#addVideo" title="Add a video">
+        <a class="rail-icon is-active" id="railUpload" href="#addVideo" title="Add a video" aria-label="Add a video">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3h16v-3"/>
           </svg>
           <span class="is-hidden">Add a video</span>
         </a>
-        <a class="rail-icon" id="railLink" href="#addVideo" title="Import from link">
+        <a class="rail-icon" id="railLink" href="#addVideo" title="Import from link" aria-label="Import from link">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M10.5 13.5a4.5 4.5 0 0 0 6.4 0l2.1-2.1a4.5 4.5 0 0 0-6.4-6.4L11.5 6"/>
             <path d="M13.5 10.5a4.5 4.5 0 0 0-6.4 0l-2.1 2.1a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>
@@ -34,11 +34,23 @@
       <header class="panel-head">
         <div class="panel-head-main">
           <p class="eyebrow">Local video clipper</p>
-          <h1>Clip studio</h1>
+          <div class="title-row">
+            <h1>Clip studio</h1>
+            <span class="badge-beta">Beta</span>
+            <a class="feedback-link" href="https://t.me/+d6DQbGgQaW1jYmI1" target="_blank" rel="noopener noreferrer">Send feedback</a>
+          </div>
           <p class="sub">Upload a long video and get vertical 9:16 clips with burned-in captions.</p>
         </div>
-        <span class="chip">1080 × 1920</span>
+        <span class="chip">Vertical 9:16</span>
       </header>
+
+      {% if not ai_enabled %}
+      <div class="notice-banner" role="status">
+        <strong>Basic suggestions mode.</strong>
+        No AI key is set, so highlights are picked from audio loudness and sentence
+        boundaries. Add <code>LLM_API_KEY</code> to <code>.env</code> for smarter picks.
+      </div>
+      {% endif %}
 
       <section class="card" id="addVideo">
         <div class="card-head">
@@ -70,8 +82,7 @@
             <div class="drop-zone" id="dropZone">
               <span class="drop-zone-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/>
-                  <path d="M4 8.5 12 13l8-4.5M12 13v7"/>
+                  <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 16v3h16v-3"/>
                 </svg>
               </span>
               <p class="drop-zone-title">Drag &amp; drop your video here</p>
@@ -80,7 +91,12 @@
               <div id="fileSelectionInfo" class="file-selection-info" style="display:none;"></div>
             </div>
 
+            <p class="privacy-note">
+              To find highlights, the transcript text (not your video) is sent to an AI service.
+            </p>
+
             <div class="upload-actions">
+              <span class="process-note">Processing takes about as long as your video.</span>
               <button type="submit" id="uploadBtn" class="btn btn-primary" disabled>
                 Upload &amp; start processing
               </button>
@@ -96,17 +112,19 @@
               type="url"
               id="importUrlInput"
               class="url-input"
-              placeholder="https://youtube.com/watch?v=...  or  a direct MP4 link  or  a Drive / Dropbox link"
+              placeholder="{% if youtube_import_enabled %}https://youtube.com/watch?v=...  or  a direct MP4 link  or  a Drive / Dropbox link{% else %}https://example.com/video.mp4  or  a Google Drive / Dropbox link{% endif %}"
               autocomplete="off"
               spellcheck="false"
             >
           </div>
           <p class="hint">
+            {% if youtube_import_enabled %}
             YouTube, TikTok and Instagram links, direct video files (MP4, MOV, WEBM, MKV),
             or public Google Drive / Dropbox share links. Other streaming sites are not supported.
-          </p>
-          <p class="note" style="margin-top:10px;">
-            Only use content you own or have permission to clip.
+            {% else %}
+            Direct video files (MP4, MOV, WEBM, MKV) or public Google Drive / Dropbox
+            share links. Streaming-site links are turned off on this copy.
+            {% endif %}
           </p>
 
           <div class="upload-actions">
@@ -134,7 +152,7 @@
       </section>
 
       <footer class="app-footer">
-        <span>Cliptor Clip Studio</span>
+        <span>Trimly Clip Studio</span>
         <span>Upload · Transcribe · Export 9:16</span>
       </footer>
     </div>

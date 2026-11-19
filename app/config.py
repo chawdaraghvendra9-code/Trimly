@@ -1,16 +1,26 @@
 """
-Configuration settings for Cliptor Clip Studio.
-Loads environment variables from .env file with safe defaults.
+Configuration settings for Trimly Clip Studio.
+Loads environment variables from the user config file with safe defaults.
+
+The config file is:
+  * installed: %APPDATA%\\Trimly\\config.env
+  * source:    .env next to the code
+Real environment variables always override values from that file.
 """
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Find the root project folder
+from app.paths import CONFIG_FILE, JOBS_DIR, LOGS_DIR, ensure_user_dirs
+
+# Kept for older code/tests that import it. New path logic lives in app.paths.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env if present
-load_dotenv(BASE_DIR / ".env")
+# Load settings: env vars win because load_dotenv does not override them.
+load_dotenv(CONFIG_FILE)
+
+# Create jobs/ and logs/ in the right place for this mode.
+ensure_user_dirs()
 
 # Video limits
 MAX_VIDEO_MINUTES = int(os.getenv("MAX_VIDEO_MINUTES", "30"))
@@ -56,13 +66,10 @@ MAX_CLIP_SECONDS = float(os.getenv("MAX_CLIP_SECONDS", "120.0"))
 # Default vertical layout style: 'blurred_background' (default) or 'center_crop'
 DEFAULT_CROP_STYLE = os.getenv("DEFAULT_CROP_STYLE", "blurred_background").strip().lower()
 
-# Directory where each job stores its video, transcript, and clips
-JOBS_DIR = BASE_DIR / "jobs_data"
-JOBS_DIR.mkdir(parents=True, exist_ok=True)
-
-# Folder for FFmpeg render logs (logs/clip_01.log)
-LOGS_DIR = BASE_DIR / "logs"
-LOGS_DIR.mkdir(parents=True, exist_ok=True)
+# Directory where each job stores its video, transcript, and clips.
+# Installed builds use %LOCALAPPDATA%\Trimly\jobs_data; the checkout keeps
+# jobs_data/ next to the code.
+# JS tests read these paths from app.paths.
 
 # Base time limit (seconds) for rendering ONE clip before FFmpeg is killed.
 # app/video.py uses max(this, 5 x clip length), so long clips get more time.
@@ -86,3 +93,10 @@ YTDLP_COOKIES_FROM_BROWSER = os.getenv("YTDLP_COOKIES_FROM_BROWSER", "").strip()
 
 # How long yt-dlp may spend on one video before giving up (seconds)
 YTDLP_TIMEOUT_SECONDS = float(os.getenv("YTDLP_TIMEOUT_SECONDS", "1800"))
+
+# Feature flag for streaming-site imports (YouTube, TikTok, Instagram).
+# Off by default for a clean public release; direct files and Drive/Dropbox
+# links keep working either way. Set to true to show and accept those links.
+ENABLE_YOUTUBE_IMPORT = os.getenv("ENABLE_YOUTUBE_IMPORT", "false").strip().lower() in {
+    "1", "true", "yes", "on"
+}

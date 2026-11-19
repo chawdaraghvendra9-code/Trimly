@@ -34,6 +34,7 @@ import yt_dlp
 from yt_dlp.utils import DownloadError as YtDlpDownloadError
 
 from app.config import (
+    ENABLE_YOUTUBE_IMPORT,
     MAX_FILE_SIZE_BYTES,
     MAX_FILE_SIZE_MB,
     MAX_VIDEO_MINUTES,
@@ -266,10 +267,15 @@ def convert_share_link(url: str) -> Tuple[str, str]:
         return text, streaming_provider
 
     if _host_in(host, UNSUPPORTED_STREAMING_HOSTS):
+        if ENABLE_YOUTUBE_IMPORT:
+            raise UnsupportedLinkError(
+                "That streaming site is not supported. You can use YouTube, TikTok or "
+                "Instagram links, a direct video file link, or a Google Drive / Dropbox "
+                "share link."
+            )
         raise UnsupportedLinkError(
-            "That streaming site is not supported. You can use YouTube, TikTok or "
-            "Instagram links, a direct video file link, or a Google Drive / Dropbox "
-            "share link."
+            "Streaming-site links are not supported on this copy. Use a direct video "
+            "file link or a public Google Drive / Dropbox share link."
         )
 
     if _host_in(host, GOOGLE_DRIVE_HOSTS):

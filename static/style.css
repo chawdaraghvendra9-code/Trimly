@@ -225,6 +225,38 @@ code {
   font-size: 0.94rem;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.badge-beta {
+  padding: 2px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--soft-2);
+  color: var(--ink-3);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+
+.feedback-link {
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.feedback-link:hover {
+  color: var(--ink);
+}
+
 .job-meta {
   display: flex;
   align-items: center;
@@ -276,8 +308,9 @@ code {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--line);
-  color: var(--muted);
+  color: var(--ink-2);
   font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .disclaimer::before {
@@ -287,7 +320,7 @@ code {
   flex: 0 0 7px;
   border-radius: 50%;
   background: var(--ink);
-  opacity: 0.35;
+  opacity: 0.7;
 }
 
 .settings-grid {
@@ -495,12 +528,26 @@ code {
   white-space: nowrap;
 }
 
+.privacy-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
 .upload-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 18px;
   flex-wrap: wrap;
+}
+
+.process-note {
+  margin-right: auto;
+  align-self: center;
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 /* ---------- 9. Buttons ---------- */
@@ -748,6 +795,31 @@ code {
 
 .error-icon {
   line-height: 1.4;
+}
+
+/* ---------- 12a. Notice banner ---------- */
+.notice-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  margin: 0 4px 18px;
+  padding: 12px 16px;
+  border: 1px solid #f3e4c2;
+  border-radius: var(--radius);
+  background: var(--amber);
+  color: var(--amber-ink);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.notice-banner strong {
+  font-weight: 700;
+}
+
+.notice-banner code {
+  background: rgba(255, 255, 255, 0.65);
+  color: inherit;
 }
 
 /* ---------- 13. Editor: font + style panels ---------- */

@@ -9,6 +9,7 @@ import numpy as np
 from faster_whisper import WhisperModel
 
 from app.logger import logger
+from app.models import whisper_cache_root
 from app.video import get_audio_duration_seconds
 
 # Global cache for the loaded Whisper model so we don't re-read from disk every time
@@ -67,11 +68,14 @@ def get_whisper_model(model_size: str = "small") -> WhisperModel:
 
     logger.info(f"Loading faster-whisper model '{size_cleaned}' (device=cpu, compute_type=int8)...")
     try:
+        # Installed builds keep models in %LOCALAPPDATA%\Trimly\models.
+        # A source checkout keeps the default Hugging Face cache.
+        download_root = whisper_cache_root()
         model = WhisperModel(
             model_size_or_path=size_cleaned,
             device="cpu",
             compute_type="int8",
-            download_root=None
+            download_root=str(download_root) if download_root else None
         )
         _model_cache[size_cleaned] = model
         logger.info(f"Model '{size_cleaned}' loaded successfully.")
