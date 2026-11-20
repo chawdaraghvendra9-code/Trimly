@@ -26,13 +26,21 @@ from app.config import (
     LLM_API_KEY,
     ENABLE_YOUTUBE_IMPORT
 )
-from app.paths import FONTS_DIR, STATIC_DIR, TEMPLATES_DIR
+from app.paths import FONTS_DIR, STATIC_DIR, TEMPLATES_DIR, WELCOME_MARKER
 from app.logger import logger
 from app.downloader import (
     LinkError,
     check_ytdlp_runtime,
     convert_share_link,
     validate_public_url,
+)
+from app.live import (
+    DEFAULT_CAPTURE_SECONDS,
+    MAX_CAPTURE_SECONDS,
+    MIN_CAPTURE_SECONDS,
+    LiveStreamError,
+    is_live_page,
+    validate_live_url,
 )
 from app.jobs import (
     create_job,
@@ -44,7 +52,8 @@ from app.jobs import (
     enqueue_job,
     render_single_candidate,
     create_all_clips_zip,
-    start_link_import
+    start_link_import,
+    start_live_capture,
 )
 from app.fonts import DEFAULT_FONT_STYLE, FONT_STYLES, list_font_styles
 from app.backgrounds import (
@@ -83,6 +92,11 @@ class VideoStyleRequest(BaseModel):
 
 class ImportLinkRequest(BaseModel):
     url: str
+    crop_style: Optional[str] = None
+
+class LiveCaptureRequest(BaseModel):
+    url: str
+    seconds: Optional[int] = None
     crop_style: Optional[str] = None
 
 VIDEO_STYLES = {"smart_fit", "split", "blurred", "solid", "gradient"}
@@ -146,7 +160,12 @@ async def home(request: Request):
             "default_crop_style": DEFAULT_CROP_STYLE,
             # Show the "basic suggestions" banner when no AI key is set.
             "ai_enabled": bool(LLM_API_KEY),
-            "youtube_import_enabled": ENABLE_YOUTUBE_IMPORT
+            "youtube_import_enabled": ENABLE_YOUTUBE_IMPORT,
+            # The one-time "runs on your computer" notice.
+            "show_welcome": not WELCOME_MARKER.exists(),
+            "live_default_seconds": DEFAULT_CAPTURE_SECONDS,
+            "live_min_seconds": MIN_CAPTURE_SECONDS,
+            "live_max_seconds": MAX_CAPTURE_SECONDS,
         }
     )
 
@@ -293,6 +312,69 @@ def import_from_link(req: ImportLinkRequest):
         "provider": provider,
         "crop_style": chosen_style,
     })
+
+
+@app.post("/api/live")
+def start_live_job(req: LiveCaptureRequest):
+    """
+    Records a short window of a live stream, then queues the normal pipeline.
+
+    The link is checked first, so a bad or local address fails instantly
+    instead of starting a broken job.
+    """
+    try:
+        url = validate_live_url(req.url)
+    except LiveStreamError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Keep the length in the safe range, even if the browser sends something odd.
+    try:
+        seconds = int(req.seconds or DEFAULT_CAPTURE_SECONDS)
+    except (TypeError, ValueError):
+        seconds = DEFAULT_CAPTURE_SECONDS
+    seconds = max(MIN_CAPTURE_SECONDS, min(MAX_CAPTURE_SECONDS, seconds))
+
+    chosen_style = (req.crop_style or DEFAULT_CROP_STYLE).strip().lower()
+    if chosen_style not in {"blurred_background", "center_crop"}:
+        chosen_style = DEFAULT_CROP_STYLE
+
+    # YouTube/Twitch live pages need yt-dlp, Node.js and yt_dlp_ejs.
+    if is_live_page(url):
+        runtime_problem = check_ytdlp_runtime()
+        if runtime_problem:
+            raise HTTPException(status_code=400, detail=runtime_problem)
+
+    job_info = create_job(
+        original_filename="Live stream recording",
+        file_size_bytes=0,
+        crop_style=chosen_style,
+        source_url=url,
+        source="live",
+    )
+    job_id = job_info["job_id"]
+    logger.info(f"[{job_id}] Live capture requested ({seconds}s).")
+
+    start_live_capture(job_id, url, seconds)
+
+    return JSONResponse({
+        "success": True,
+        "job_id": job_id,
+        "status": "recording",
+        "capture_seconds": seconds,
+        "crop_style": chosen_style,
+    })
+
+
+@app.post("/api/welcome/seen")
+def mark_welcome_seen():
+    """Remembers that the one-time welcome notice was dismissed."""
+    try:
+        WELCOME_MARKER.parent.mkdir(parents=True, exist_ok=True)
+        WELCOME_MARKER.write_text("seen\n", encoding="utf-8")
+    except OSError as e:
+        # Not being able to save the marker must never break the app.
+        logger.warning(f"Could not save the welcome marker: {e}")
+    return JSONResponse({"success": True})
 
 
 @app.get("/api/jobs/{job_id}")

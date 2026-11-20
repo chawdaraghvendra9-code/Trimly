@@ -15,17 +15,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const errorMessageAlert = document.getElementById("errorMessageAlert");
   const errorMessageText = document.getElementById("errorMessageText");
 
-  // "Upload a file" vs "Import from link" tabs
+  // "Upload a file", "Import from link" and "Clip a live stream" tabs
   const modeTabFile = document.getElementById("modeTabFile");
   const modeTabLink = document.getElementById("modeTabLink");
+  const modeTabLive = document.getElementById("modeTabLive");
   const fileModePanel = document.getElementById("fileModePanel");
   const linkModePanel = document.getElementById("linkModePanel");
+  const liveModePanel = document.getElementById("liveModePanel");
   const importUrlInput = document.getElementById("importUrlInput");
   const importBtn = document.getElementById("importBtn");
+  const liveUrlInput = document.getElementById("liveUrlInput");
+  const liveSecondsInput = document.getElementById("liveSecondsInput");
+  const liveBtn = document.getElementById("liveBtn");
 
-  // Icon rail mirrors the two tabs
+  // Icon rail mirrors the three tabs
   const railUpload = document.getElementById("railUpload");
   const railLink = document.getElementById("railLink");
+  const railLive = document.getElementById("railLive");
 
   // Helper to show error banner
   function showError(msg) {
@@ -39,28 +45,33 @@ document.addEventListener("DOMContentLoaded", () => {
     errorMessageText.textContent = "";
   }
 
-  // Switch between the two ways of adding a video
+  // Switch between the three ways of adding a video
   function setMode(mode) {
-    const isFile = mode === "file";
-    modeTabFile.classList.toggle("active", isFile);
-    modeTabLink.classList.toggle("active", !isFile);
-    modeTabFile.setAttribute("aria-selected", isFile ? "true" : "false");
-    modeTabLink.setAttribute("aria-selected", isFile ? "false" : "true");
-    fileModePanel.style.display = isFile ? "block" : "none";
-    linkModePanel.style.display = isFile ? "none" : "block";
-    if (railUpload) railUpload.classList.toggle("is-active", isFile);
-    if (railLink) railLink.classList.toggle("is-active", !isFile);
+    const modes = ["file", "link", "live"];
+    const panels = { file: fileModePanel, link: linkModePanel, live: liveModePanel };
+    const tabs = { file: modeTabFile, link: modeTabLink, live: modeTabLive };
+    const rails = { file: railUpload, link: railLink, live: railLive };
+
+    modes.forEach((name) => {
+      const isCurrent = name === mode;
+      tabs[name].classList.toggle("active", isCurrent);
+      tabs[name].setAttribute("aria-selected", isCurrent ? "true" : "false");
+      panels[name].style.display = isCurrent ? "block" : "none";
+      if (rails[name]) rails[name].classList.toggle("is-active", isCurrent);
+    });
+
     uploadProgressBox.style.display = "none";
     hideError();
-    if (!isFile) {
-      importUrlInput.focus();
-    }
+    if (mode === "link") importUrlInput.focus();
+    if (mode === "live") liveUrlInput.focus();
   }
 
   modeTabFile.addEventListener("click", () => setMode("file"));
   modeTabLink.addEventListener("click", () => setMode("link"));
+  modeTabLive.addEventListener("click", () => setMode("live"));
   if (railUpload) railUpload.addEventListener("click", () => setMode("file"));
   if (railLink) railLink.addEventListener("click", () => setMode("link"));
+  if (railLive) railLive.addEventListener("click", () => setMode("live"));
 
   // Upload limit comes from the server so the two never disagree.
   const maxSizeMB = parseFloat(uploadForm.dataset.maxSizeMb || "0");
@@ -238,4 +249,89 @@ document.addEventListener("DOMContentLoaded", () => {
       startLinkImport();
     }
   });
+
+  // Record a short window from a live stream, then let the pipeline clip it.
+  async function startLiveCapture() {
+    hideError();
+
+    const url = (liveUrlInput.value || "").trim();
+    if (!url) {
+      showError("Please paste the live stream link first.");
+      liveUrlInput.focus();
+      return;
+    }
+
+    // Stay inside the limits the server also enforces.
+    const minSeconds = parseInt(liveSecondsInput.dataset.min || "20", 10);
+    const maxSeconds = parseInt(liveSecondsInput.dataset.max || "600", 10);
+    const fallback = parseInt(liveSecondsInput.dataset.default || "90", 10);
+    let seconds = parseInt(liveSecondsInput.value || "", 10);
+    if (Number.isNaN(seconds)) seconds = fallback;
+    seconds = Math.min(maxSeconds, Math.max(minSeconds, seconds));
+    liveSecondsInput.value = seconds;
+
+    const cropStyleSelect = document.getElementById("cropStyleSelect");
+    const cropStyle = cropStyleSelect ? cropStyleSelect.value : "blurred_background";
+
+    liveBtn.disabled = true;
+    liveBtn.textContent = "⏳ Connecting...";
+
+    try {
+      const resp = await fetch("/api/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url, seconds: seconds, crop_style: cropStyle })
+      });
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        showError(data.detail || "That live stream could not be recorded.");
+        return;
+      }
+
+      // Recording runs in the background - the studio page shows its progress.
+      uploadProgressBox.style.display = "block";
+      uploadProgressBar.style.width = "2%";
+      uploadStatusText.textContent =
+        `Recording ${data.capture_seconds} seconds of the live stream...`;
+      window.location.href = `/jobs/${data.job_id}/view`;
+    } catch (err) {
+      showError("Could not reach the server. Make sure it is still running, then try again.");
+    } finally {
+      liveBtn.disabled = false;
+      liveBtn.textContent = "Record & clip";
+    }
+  }
+
+  liveBtn.addEventListener("click", startLiveCapture);
+
+  liveUrlInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      startLiveCapture();
+    }
+  });
+
+  // One-time "runs on your computer" notice.
+  const welcomeModal = document.getElementById("welcomeModal");
+  if (welcomeModal) {
+    const welcomeOkBtn = document.getElementById("welcomeOkBtn");
+    let welcomeClosed = false;
+
+    function closeWelcome() {
+      if (welcomeClosed) return;
+      welcomeClosed = true;
+      welcomeModal.remove();
+      // Remember the choice, so the notice never shows again.
+      fetch("/api/welcome/seen", { method: "POST" }).catch(() => {});
+    }
+
+    welcomeOkBtn.addEventListener("click", closeWelcome);
+    welcomeModal.addEventListener("click", (event) => {
+      if (event.target === welcomeModal) closeWelcome();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeWelcome();
+    });
+  }
 });

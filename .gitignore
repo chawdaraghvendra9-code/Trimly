@@ -25,6 +25,7 @@ logs/
 *.log
 trimly.log
 cliptor.log
+welcome_seen
 
 # --- Test media and all video/audio files ---
 /sample_video.mp4

@@ -25,6 +25,14 @@
           </svg>
           <span class="is-hidden">Import from link</span>
         </a>
+        <a class="rail-icon" id="railLive" href="#addVideo" title="Live stream" aria-label="Live stream">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="2.4"/>
+            <path d="M7.8 7.8a6 6 0 0 0 0 8.4"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4"/>
+            <path d="M5 5a10 10 0 0 0 0 14"/><path d="M19 5a10 10 0 0 1 0 14"/>
+          </svg>
+          <span class="is-hidden">Live stream</span>
+        </a>
       </nav>
 
       <div class="rail-spacer"></div>
@@ -73,6 +81,9 @@
           </button>
           <button type="button" class="mode-tab" id="modeTabLink" role="tab" aria-selected="false">
             Import from link
+          </button>
+          <button type="button" class="mode-tab" id="modeTabLive" role="tab" aria-selected="false">
+            Live stream
           </button>
         </div>
 
@@ -134,6 +145,61 @@
           </div>
         </div>
 
+        <!-- Mode 3: record a short window from a stream that is live right now -->
+        <div id="liveModePanel" style="display: none;">
+          <div class="field">
+            <label for="liveUrlInput">Live stream link</label>
+            <input
+              type="url"
+              id="liveUrlInput"
+              class="url-input"
+              placeholder="{% if youtube_import_enabled %}https://youtube.com/watch?v=...  (live)  or  a direct HLS .m3u8 link{% else %}https://example.com/live/stream.m3u8{% endif %}"
+              autocomplete="off"
+              spellcheck="false"
+            >
+          </div>
+          <p class="hint">
+            {% if youtube_import_enabled %}
+            YouTube or Twitch live pages, or a direct HLS (.m3u8) / DASH (.mpd) link.
+            The stream must be live while Trimly records it.
+            {% else %}
+            Direct live links such as HLS (<code>.m3u8</code>), DASH (<code>.mpd</code>)
+            or MPEG-TS. Streaming-site live pages are turned off on this copy.
+            {% endif %}
+          </p>
+
+          <div class="live-row">
+            <div class="field live-seconds">
+              <label for="liveSecondsInput">Record for</label>
+              <div class="live-seconds-line">
+                <input
+                  type="number"
+                  id="liveSecondsInput"
+                  class="url-input"
+                  min="{{ live_min_seconds }}"
+                  max="{{ live_max_seconds }}"
+                  step="5"
+                  value="{{ live_default_seconds }}"
+                  data-default="{{ live_default_seconds }}"
+                  data-min="{{ live_min_seconds }}"
+                  data-max="{{ live_max_seconds }}"
+                >
+                <span>seconds</span>
+              </div>
+            </div>
+          </div>
+          <p class="hint">
+            Trimly records that many seconds, then finds clips inside the recording.
+            Keep the app open while it records.
+          </p>
+
+          <div class="upload-actions">
+            <button type="button" id="liveBtn" class="btn btn-primary">
+              Record &amp; clip
+            </button>
+          </div>
+        </div>
+
         <!-- Upload progress -->
         <div id="uploadProgressBox" class="progress-box" style="display:none;">
           <div class="progress-bar-container">
@@ -157,6 +223,29 @@
       </footer>
     </div>
   </div>
+
+  {% if show_welcome %}
+  <!-- Shown once, the first time the app is opened. -->
+  <div class="welcome-overlay" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <div class="welcome-card">
+      <p class="eyebrow">Before you start</p>
+      <h2 id="welcomeTitle">Trimly runs on your computer</h2>
+      <p>
+        Your video stays on this PC. Transcription, highlight picking and
+        rendering all happen locally, so nothing is uploaded to a Trimly server.
+      </p>
+      <p>
+        <strong>Speed depends on your system.</strong> A faster CPU finishes
+        sooner, and longer videos take longer. The first run also downloads the
+        Whisper model once.
+      </p>
+      <p class="welcome-note">
+        Only the transcript text is sent to the AI service to choose highlights.
+      </p>
+      <button type="button" class="btn btn-primary" id="welcomeOkBtn">Got it</button>
+    </div>
+  </div>
+  {% endif %}
 
   <script src="/static/app.js"></script>
 </body>

@@ -14,7 +14,20 @@ import zipfile
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 
-from app.config import JOBS_DIR, WHISPER_MODEL, DEFAULT_CROP_STYLE, MAX_VIDEO_MINUTES
+from app.config import (
+    JOBS_DIR,
+    LOGS_DIR,
+    WHISPER_MODEL,
+    DEFAULT_CROP_STYLE,
+    MAX_VIDEO_MINUTES,
+)
+from app.live import (
+    LiveStreamError,
+    capture_live_stream,
+    friendly_live_error,
+    is_live_page,
+    resolve_live_source,
+)
 from app.logger import logger
 from app.downloader import (
     LinkError,
@@ -119,14 +132,25 @@ def create_job(
     smart_background: str = "blurred",
     split_background: str = "random",
     split_divider: bool = True,
+    source: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Creates a new job with a unique folder and an initial job.json file.
     When source_url is given the job is an "import from link" job.
+    source="live" marks a live stream recording job.
     """
     job_id = f"job_{int(time.time())}_{uuid.uuid4().hex[:6]}"
     job_dir = get_job_dir(job_id)
     job_dir.mkdir(parents=True, exist_ok=True)
+
+    # Live recordings start as "recording", links as "downloading".
+    job_source = source or ("link" if source_url else "upload")
+    if job_source == "live":
+        status, message, percent = "recording", "Waiting to record the live stream...", 0
+    elif source_url:
+        status, message, percent = "downloading", "Waiting to start the download...", 0
+    else:
+        status, message, percent = "uploaded", "Video uploaded. Queued for processing...", 5
 
     job_data: Dict[str, Any] = {
         "job_id": job_id,
@@ -147,15 +171,11 @@ def create_job(
         "smart_background": smart_background,
         "split_background": split_background,
         "split_divider": split_divider,
-        "source": "link" if source_url else "upload",
+        "source": job_source,
         "source_url": source_url,
-        # A link job starts as "downloading"; an upload starts as "uploaded".
-        "status": "downloading" if source_url else "uploaded",
-        "progress_message": (
-            "Waiting to start the download..." if source_url
-            else "Video uploaded. Queued for processing..."
-        ),
-        "progress_percent": 0 if source_url else 5,
+        "status": status,
+        "progress_message": message,
+        "progress_percent": percent,
         "duration_seconds": 0.0,
         "created_at": time.time(),
         "error": None,
@@ -264,6 +284,91 @@ def _run_link_import(job_id: str, url: str) -> None:
             message = friendly_link_error(e)
         logger.error(f"[{job_id}] Import from link failed: {e}")
         update_job_status(job_id, "error", "Import failed", 0, error=message)
+
+
+def start_live_capture(job_id: str, url: str, seconds: int) -> None:
+    """Records a short window of a live stream in the background."""
+    thread = threading.Thread(
+        target=_run_live_capture,
+        args=(job_id, url, seconds),
+        daemon=True,
+        name=f"live-{job_id}",
+    )
+    thread.start()
+    logger.info(f"[{job_id}] Live capture started ({seconds}s).")
+
+
+def _run_live_capture(job_id: str, url: str, seconds: int) -> None:
+    """Background worker: record -> ffprobe check -> normal pipeline."""
+    job_dir = get_job_dir(job_id)
+    output = job_dir / "input.mp4"
+    log_path = LOGS_DIR / f"live_{job_id}.log"
+
+    try:
+        update_job_status(job_id, "recording", "Connecting to the live stream...", 2)
+
+        def on_progress(percent: int) -> None:
+            # Recording is most of the wait, so stop the bar at 90%.
+            bar = min(90, 5 + int(percent * 0.85))
+            update_job_status(
+                job_id,
+                "recording",
+                f"Recording live stream... {percent}% of {seconds}s",
+                bar,
+            )
+
+        started = time.monotonic()
+        if is_live_page(url):
+            update_job_status(
+                job_id, "recording", "Looking up the live stream address...", 2
+            )
+        # YouTube/Twitch pages are turned into a direct HLS address here.
+        stream_url = resolve_live_source(url, job_dir)
+
+        recorded = capture_live_stream(
+            stream_url,
+            output,
+            seconds,
+            log_path,
+            progress_cb=on_progress,
+        )
+        logger.info(
+            f"[{job_id}] Live capture finished in {time.monotonic() - started:.1f}s"
+        )
+
+        # Make sure it really is a video before transcribing it.
+        update_job_status(job_id, "recording", "Checking the recording...", 95)
+        info = probe_video_file(recorded)
+
+        data = load_job(job_id) or {}
+        data["file_size_bytes"] = recorded.stat().st_size
+        data["duration_seconds"] = round(info["duration"], 2)
+        data["video_width"] = info["width"]
+        data["video_height"] = info["height"]
+        data["source"] = "live"
+        data["source_url"] = url
+        data["capture_seconds"] = seconds
+        data["error"] = None
+        save_job(job_id, data)
+
+        update_job_status(
+            job_id, "uploaded", "Recording finished. Queued for processing...", 5
+        )
+        logger.info(
+            f"[{job_id}] Live recording ready: {info['width']}x{info['height']}, "
+            f"{info['duration']:.1f}s"
+        )
+        enqueue_job(job_id)
+
+    except Exception as e:
+        # Never leave a broken recording for the pipeline to pick up.
+        cleanup_partial_download(job_dir)
+        if isinstance(e, (LiveStreamError, InvalidVideoError)):
+            message = str(e)
+        else:
+            message = friendly_live_error(e)
+        logger.error(f"[{job_id}] Live capture failed: {e}")
+        update_job_status(job_id, "error", "Live recording failed", 0, error=message)
 
 
 def _check_clip_duration(clip_path: Path, expected_seconds: float) -> float:

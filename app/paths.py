@@ -74,6 +74,9 @@ BACKGROUNDS_DIR = DATA_DIR / "backgrounds"
 LOG_FILE = DATA_DIR / "trimly.log"
 CONFIG_FILE = _config_file()
 
+# Created after the one-time "runs on your computer" notice is dismissed.
+WELCOME_MARKER = DATA_DIR / "welcome_seen"
+
 
 def ensure_user_dirs() -> None:
     """Creates the writable folders once, at startup. Never inside the package."""

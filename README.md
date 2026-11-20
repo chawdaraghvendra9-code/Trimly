@@ -159,13 +159,24 @@ Running from the source folder keeps the old behaviour: data stays in
 2. **Or import from a link** — direct MP4/MOV/WEBM/MKV links and public Google
    Drive or Dropbox share links work out of the box. Streaming sites are off by
    default (see `ENABLE_YOUTUBE_IMPORT`).
-3. **Wait for processing** — Trimly extracts audio, transcribes it, suggests
+3. **Or clip a live stream** — open **Live stream**, paste a live link and
+   choose how many seconds to record (20–600, default 90). Trimly records that
+   window with FFmpeg, then transcribes and clips the recording. The stream must
+   be live while it records; keep the app open.
+   - Works out of the box with direct **HLS (`.m3u8`)**, **DASH (`.mpd`)** and
+     **MPEG-TS** links.
+   - **YouTube / Twitch live pages** need `ENABLE_YOUTUBE_IMPORT=true` and
+     Node.js 22+ (the same switch as normal streaming-site imports).
+4. **Wait for processing** — Trimly extracts audio, transcribes it, suggests
    clips and renders each one. Processing takes roughly as long as the video.
-4. **Review the clips** — in the studio you can nudge start/end times, change the
+   Speed depends on your computer.
+5. **Review the clips** — in the studio you can nudge start/end times, change the
    hook title, pick a caption font and choose a video style.
-5. **Download** — grab one clip or all clips as a ZIP.
+6. **Download** — grab one clip or all clips as a ZIP.
 
 The first transcription downloads the Whisper model once. Later jobs are faster.
+On the first run Trimly also shows a one-time notice explaining that everything
+runs locally on your PC.
 
 ### Basic suggestions mode
 
@@ -193,6 +204,8 @@ for you with `trimly setup`; the source/ZIP build edits `.env`.
   when `LLM_API_KEY` is set. The video and audio never leave your PC.
 - With no key, no transcript leaves your PC at all.
 - Link imports contact the site you paste (and Google Drive / Dropbox when used).
+- Live capture connects to the stream you paste and saves the recording in the
+  same local job folder. Nothing is sent to a Trimly server.
 - There is no analytics, no account and no cloud storage.
 
 Trimly's local logs (`trimly.log`, `logs\clip_XX.log`) are only on your machine.
@@ -234,7 +247,7 @@ override the file.
 | `MAX_FILE_SIZE_MB` | `1000` | Upload / download limit |
 | `DEFAULT_CROP_STYLE` | `blurred_background` | Default vertical layout |
 | `RENDER_TIMEOUT_SECONDS` | `300` | Base ffmpeg timeout per clip |
-| `ENABLE_YOUTUBE_IMPORT` | `false` | Allow YouTube/TikTok/Instagram links |
+| `ENABLE_YOUTUBE_IMPORT` | `false` | Allow YouTube/TikTok/Instagram links and YouTube/Twitch live pages |
 | `YTDLP_MAX_HEIGHT` | `720` | Max height for streaming imports |
 | `YTDLP_TIMEOUT_SECONDS` | `1800` | Max seconds per link download |
 | `YTDLP_COOKIES_FILE` | _(empty)_ | Optional cookies.txt for blocked sites |
